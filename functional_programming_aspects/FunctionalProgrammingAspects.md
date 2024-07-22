@@ -107,3 +107,71 @@ let validate_user_move: impl FnOnce(&str) -> bool = move |name: &str| {
 println!("{banned_user}"); // Will throw an error
 ```
 - Last print statement will throw an error, because `banned_user` has been moved to the closure, because of `move` keyword, even thought it is being used by reference in actual code.
+
+-------------------------------------------------------
+## Functional Pointers
+-------------------------------------------------------
+- **Functional Pointers are similar to closures, except they don't capture variables from the scope.**
+```rust
+struct User {
+    name: String,
+    age: u8,
+    _salary: u32,
+}
+
+fn is_valid_user<V1, V2>(name: &str, age: u8, simple_validator: V1, advance_validator: V2) -> bool
+where
+    V1: FnOnce(&str) -> bool,
+    V2: Fn(u8) -> bool,
+{
+    simple_validator(name) && advance_validator(age)
+}
+
+fn validate_user_simple(name: &str) -> bool {
+    name.len() != 0
+}
+
+pub fn main() {
+    let person_1 = User {
+        name: String::from("Some One"),
+        age: 35,
+        _salary: 100_000,
+    };
+
+    // let validate_user_simple = |name: &str| name.len() != 0;
+    let validate_user_advanced = |age: u8| age >= 30;
+
+    println!(
+        "User Validity: {}",
+        is_valid_user(
+            &person_1.name,
+            person_1.age,
+            validate_user_simple,
+            validate_user_advanced
+        )
+    )
+}
+```
+- Even if we change the code as above, i.e. instead of using `closures` we are using `functional pointers`, the code will still work.
+- In the above, we are passing `validate_user_simple` to the `is_valid_user` function. But `validate_user_simple` is not a closure but a function, which is being passed as a `functional pointer`.
+- `functional pointers` implement all the three closure traits `Fn`, `FnMut` and `FnOnce`.
+- So you can pass regular functions anywhere closures are expected.
+- Here `V1` is `Functional Pointer` which is pointing to `validate_user_simple` function.
+- We can do the same with `validate_user_advanced` function.
+- We can also change the `is_valid_user` to only accept `Functional Pointers` instead of `closures`.
+```rust
+fn is_valid_user<V1, V2>(name: &str, age: u8, simple_validator: V1, advance_validator: V2) -> bool
+where
+    V1: Fn(&str) -> bool,
+    V2: Fn(u8) -> bool,
+{
+    simple_validator(name) && advance_validator(age)
+}
+```
+- Above was the example of function taking `closures` as arguments, now let's modify it to take `functional pointers` as arguments.
+- `Functional Pointers` are concrete types and denoted by `fn` instead of `Fn` which is for closures.
+- A key requirement for `Functional Pointers` is that it must not use any variables from its scope/environment.
+- To use variables from scope/environment, we can explicitly pass them as arguments to the function.
+-------------------------------------------------------
+## Iterators
+-------------------------------------------------------
