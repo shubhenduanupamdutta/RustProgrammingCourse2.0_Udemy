@@ -175,3 +175,95 @@ where
 -------------------------------------------------------
 ## Iterators
 -------------------------------------------------------
+- **Iterators:** design pattern allow different types to have a common interface for accessing the elements of a type sequentially.
+- This abstracts away the details of how `iterator` is implemented internally, and how the type is laid down and defined internally.
+- *Iterators* are heavily used in Rust programs, and therefore a must to understand.
+- Rust standard library has a trait `Iterator` which is implemented by many types, can be used to iterate over the elements of the type.
+- We can also implement the `Iterator` trait for our custom types.
+- Definition of `Iterator` trait in Rust standard library looks something like this:
+```rust
+trait Iterator {
+    type Item;
+    fn next(&mut self) -> Option<Self::Item>;
+}
+```
+- `Iterator` trait has an associated type `Item` which is the type of the element that the iterator will yield.
+- `next` method is used to get the next element from the iterator, and it must be implemented for the type.
+- `next` method provides a way to get to next element in the iteration. 
+- Calling `next` method repeatedly will return `Some` with the next element, and `None` when the iteration is over.
+- `Iterator` trait has many default implementation, but `next` method must be explicitly implemented by the type.
+- Let's see an example,
+```rust
+struct Employee {
+    name: String,
+    salary: u16,
+}
+
+struct EmployeeRecords {
+    employee_db: Vec<Employee>,
+}
+
+impl Iterator for EmployeeRecords {
+    type Item = String;
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.employee_db.len() != 0 {
+            let result = self.employee_db[0].name.clone();
+            self.employee_db.remove(0);
+            Some(result)
+        } else {
+            None
+        }
+    }
+}
+
+pub fn main() {
+    let mut emp_1 = Employee {
+        name: String::from("Employee 1"),
+        salary: 1000,
+    };
+    let mut emp_2 = Employee {
+        name: String::from("Employee 2"),
+        salary: 2000,
+    };
+    let mut emp_db = EmployeeRecords {
+        employee_db: vec![emp_1, emp_2],
+    };
+
+    println!("{:?}", emp_db.next());
+    println!("{:?}", emp_db.next());
+    println!("{:?}", emp_db.next());
+}
+```
+- In the above code, we have defined a struct `Employee` and `EmployeeRecords`.
+- `EmployeeRecords` has a vector of `Employee` and we have implemented `Iterator` trait for `EmployeeRecords`.
+- We have defined the associated type `Item` as `String` and implemented the `next` method.
+- In the `next` method, we are removing the first element from the vector and returning it.
+- `println` statements are used to print the elements of the iterator.
+- We get output
+```shell
+Some("Employee 1")
+Some("Employee 2")
+None
+```
+- We can also use `for` loop to iterate over the elements of the iterator, since we have implemented `Iterator` trait for `EmployeeRecords`.
+```rust
+for employee in emp_db {
+    println!("{employee}");
+}
+```
+- Above code will print the elements of the iterator.
+- For loop is smart enough to call the `next` method on the iterator and iterate over the elements.
+- It will stop when `next` method returns `None`.
+- `for loop` will be automatically end when the `None` variant is encountered.
+- Furthermore, all the values will be unwrapped.
+- We get output as
+```shell
+Employee 1
+Employee 2
+```
+- We can also return our custom defined type from the `next` method, as long as we stick to basic rules of the `Iterator` trait.
+- **Basic Rule of Iterator Trait:**
+    - `Iterator` trait must have a mandatory function `next` which returns `Option<Self::Item>`.
+    - `Items` returned must have to the same type.
+
+-------------------------------------------------------
