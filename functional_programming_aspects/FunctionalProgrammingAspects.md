@@ -362,3 +362,75 @@ impl IntoIterator for Book {
 - This is a more idiomatic way of implementing `IntoIterator` trait for the `Book` struct.
 - This is because `std::vec::IntoIter` is a type which is used to iterate over the elements of a vector, and it is more efficient than the `BookIterator` type.
 - And we wouldn't have to implement the `Iterator` trait for the `BookIterator` type, or even define the `BookIterator` type.
+-------------------------------------------------------
+## Iterating Through Collections
+-------------------------------------------------------
+- **A very common use case for an iterator is to iterate over the elements of a collection.**
+- Collections in Rust standard library can be converted into iterators.
+- Two commonly used collections in Rust are `Vec` and `HashMap`.
+- There are three basic methods which are used to create an iterator from a collection, depending upon how you would reference the values in the collection.
+    - `iter()` -> Gives us iterator over immutable references to items in the collection.
+    - `iter_mut()` -> Gives us iterator over mutable references to items in the collection.
+    - `into_iter()` -> Gives us iterator over owned items in the collection.
+- `iter()` method is used to iterate over the collection without consuming it, or mutating it.
+- This can be seen using the `next()` method on the iterator.
+```rust
+pub fn main() {
+    let mut vec_1 = vec![45, 30, 85, 90, 41, 39];
+    let mut vec_1_iter = vec_1.iter();
+    let value_1 = vec_1_iter.next();
+    println!("Value 1: {:?}", value_1);
+}
+```
+- The type of `value_1` is `Option<&i32>`, because `iter()` method returns an iterator over immutable references to the items in the collection.
+- `iter_mut()` method is used to iterate over the collection with mutable references to the items in the collection, it can be used to mutate the collection.
+- When using the collection in a for loop, rust can infer the type of the iterator.
+```rust
+// Case I
+for values in &vec_1 {
+    println!("Value: {}", values);
+}
+
+// Case 2
+println!("Iterating through mutable vector");
+for values in &mut vec_1 {
+    *values += 50;
+    println!("Value: {}", values);
+}
+
+// Case 3
+println!("Iterating through vector using into_iter");
+let vec_2 = vec![45, 30, 85, 90, 41, 39];
+for values in vec_2{
+    println!("Value: {}", values);
+}
+```
+- Rust compiler will automatically designate `values` in case as `&i32`, for case 2, it will designate `values` as `&mut i32`, and for case 3, it will designate `values` as `i32`.
+- After using owning the values in the collection, in the third case, vector `vec_2` will be consumed and we won't be able to use it again.
+=======================================================
+- Let's analyze some examples with HashMap.
+```rust
+println!("Examples with HashMap");
+let mut person: HashMap<String, i32> = HashMap::new();
+person.insert("John".to_string(), 23);
+person.insert("Doe".to_string(), 24);
+person.insert("Smith".to_string(), 25);
+
+println!("Iterating through HashMap, borrowing immutable reference");
+for (name, age) in &person {
+    println!("Name: {}, Age: {}", name, age);
+}
+
+println!("Iterating through HashMap, borrowing mutable reference");
+
+for (name, age) in &mut person {
+    *age += 1;
+    println!("Name: {}, Age: {}", name, age);
+}
+```
+- In the above code, rust will automatically choose the type of `name` and `age` based on the use of the values in the for loop.
+- In the first case, `name` and `age` will be `(&String, &i32)`, and in the second case, `name` and `age` will be `(&String, &mut i32)`.
+- We can see that even when using `mutable iterators` in second case, we still get `immutable reference` to the key of the HashMap.
+- Because the key of the HashMap is immutable, and we can't change it.
+- We can also own the values.
+-------------------------------------------------------
