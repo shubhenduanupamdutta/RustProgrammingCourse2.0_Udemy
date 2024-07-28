@@ -434,3 +434,58 @@ for (name, age) in &mut person {
 - Because the key of the HashMap is immutable, and we can't change it.
 - We can also own the values.
 -------------------------------------------------------
+## Combinators
+-------------------------------------------------------
+
+- Consider the following vector containing names of the fruit.
+```rust
+let words = vec!["apple", "banana", "grape", "orange", "watermelon", "pineapple", "mango", "strawberry"];
+```
+- Suppose we want to obtain all the fruit names, that starts with either letter `a` or letter `b`.
+- Additionally all such fruit names should be in uppercase.
+- One way to do this will be to use the for loops.
+```rust
+pub fn main() {
+    let words = vec!["apple", "banana", "grape", "orange", "watermelon", "pineapple", "mango", "strawberry", "beet", "blueberry", "cherry", "apricot"];
+
+    let mut result: Vec<String> = vec![];
+
+    for word in words {
+        if word.starts_with("a") || word.starts_with("b") {
+            let uppercase_word = word.to_uppercase();
+            result.push(uppercase_word);
+        }
+    }
+
+    println!("Result: {:?}", result);
+}
+```
+- Above code will give us the desired result, but it is not very concise.
+- We can make it look more precise and more readable/clean by using iterators and combinators.
+- **Combinators** are compact pure functions created for specific tasks, which can be chained together to perform complex operations.
+- `Iterators` come with variety of `combinators` which can be used to perform operations on the elements of the iterator.
+- `filter()` is also a useful `combinator` which can be used to filter out the elements of the iterator based on some condition.
+- `filter()` takes a closure as an argument, which is used to filter out the elements, it will execute the closure for each element of the iterator, and if the closure returns `true`, the element will be included in the result.
+- `map()` is another useful `combinator` which can be used to transform the elements of the iterator.
+- `map()` converts the elements of the iterator into another type, by applying the closure to each element.
+- `collect()` is used to collect the elements of the iterator into a collection.
+- `collect()` combinator requires the type of the collection to be specified, and it will collect the elements of the iterator into that collection.
+- There are two ways to specify the type of the collection, either by using turbofish syntax `::<Type>` or by using type inference.
+```rust
+let fruits = vec!["apple", "banana", "grape", "orange", "watermelon", "pineapple", "mango", "strawberry", "beet", "blueberry", "cherry", "apricot", "avocado", "blackberry", "cantaloupe", "coconut", "fig", "kiwi", "lemon", "lime", "lychee", "nectarine", "papaya", "peach", "pear", "plum", "pomegranate", "raspberry", "tangerine", "tomato", "watermelon"];
+
+let result = fruits
+.into_iter()
+.filter(|&word| word.starts_with("a") || word.starts_with("b"))
+.map(|word| word.to_uppercase())
+.collect::<Vec<String>>();
+```
+- In the above code, we have used `filter()` and `map()` combinators to filter out the elements of the iterator and transform them.
+- In the above case, advantage of using combinators is not that apparent, because it was a simple example.
+- But, in general, combinators will result in lesser, clearer and cleaner code.
+=======================================================
+- **FEW NOTES**
+    - `Iterators` and method on iterators i.e. `combinators` such as `filter`, `map`, `collect` are lazy. This means that they don't do anything until you call `next` method on the iterator or a method that ultimately calls `next` method.
+    - For instance in the above code, no work is done until `collect` method is called. `collect` method calls the `next` method under the hood, which in turn calls the `filter` and `map` methods.
+    - There are a lot of combinators, we have only seen a few of them. Some of the other combinators are `enumerate`, `skip`, `take`, etc.
+-------------------------------------------------------

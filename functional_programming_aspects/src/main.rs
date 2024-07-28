@@ -1,8 +1,5 @@
 use functional_programming_aspects::closures;
-use functional_programming_aspects::functional_pointers;
-use functional_programming_aspects::into_iterator;
-use functional_programming_aspects::iterating_through_collections;
-use functional_programming_aspects::iterators;
+use functional_programming_aspects::{combinators, functional_pointers, into_iterator, iterating_through_collections, iterators};
 
 fn main() {
     println!("################ Closures ################");
@@ -19,5 +16,8 @@ fn main() {
 
     println!("\n\n################ Iterating through collections ################\n");
     iterating_through_collections::main();
+
+    println!("\n\n################ Combinators ################\n");
+    combinators::main();
 
 }
