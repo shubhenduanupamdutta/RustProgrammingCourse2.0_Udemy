@@ -489,3 +489,86 @@ let result = fruits
     - For instance in the above code, no work is done until `collect` method is called. `collect` method calls the `next` method under the hood, which in turn calls the `filter` and `map` methods.
     - There are a lot of combinators, we have only seen a few of them. Some of the other combinators are `enumerate`, `skip`, `take`, etc.
 -------------------------------------------------------
+## Iterating Through Options
+-------------------------------------------------------
+- Consider a couple of variables, first variable contains information regarding a product, wrapped around by a variant.
+- We also have a vector of products.
+- We want to add a logic, that if `some_product` is not `None`, then we want to add it to the vector of products.
+- We can do this using `match` statement or `if let` statement.
+```rust
+pub fn main() {
+    let some_product = Some("Product 1");
+    let mut products = vec!["Product 2", "Product 3", "Product 4"];
+
+    match some_product {
+        Some(product) => products.push(product),
+        None => (),
+    }
+
+    println!("Products: {:?}", products);
+}
+```
+- Above code will add the product to the vector if `some_product` is not `None`.
+- We can also use `if let` statement to achieve the same.
+```rust
+pub fn main() {
+    let some_product = Some("Product 1");
+    let mut products = vec!["Product 2", "Product 3", "Product 4"];
+
+    if let Some(product) = some_product {
+        products.push(product);
+    }
+
+    println!("Products: {:?}", products);
+}
+```
+- However there is even more simpler way, that is by using `extend` method on the vector.
+- `extend` method extends the collection with the content of an iterator.
+- If the iterator is empty, then nothing will be added to the collection.
+```rust
+pub fn main() {
+    let some_product = Some("Product 1");
+    let mut products = vec!["Product 2", "Product 3", "Product 4"];
+
+    products.extend(some_product);
+
+    println!("Products: {:?}", products);
+}
+```
+- Here passing an `Option<>` works because, option implements an `IntoIterator` trait.
+- Since `Option` enum implements `IntoIterator` trait, we can use it where an iterator is expected.
+- For instance we can use it to chain it with some other iterator, and build a larger iterator.
+```rust
+let product_iter = products.iter().chain(some_product.iter());
+
+for product in product_iter {
+    println!("Product: {}", product);
+}
+```
+- Let's look at one more use case.
+- Consider a vector containing some `Option` values, containing some products.
+```rust
+let products = vec![Some("Charger"), Some("Battery"), None, Some("Headphones"), None, Some("Cable")];
+```
+- We want to filter out the `None` values from the vector and collect the `Some` values into a new vector.
+- Let's use a for loop first
+```rust
+let mut valid_products: Vec<&str> = vec![];
+for p in products {
+    if p.is_some() {
+        valid_products.push(p.unwrap());
+    }
+}
+```
+- We can also use iterators and combinators to achieve the same.
+```rust
+let valid_products = products
+    .into_iter()
+    .filter(|x| x.is_some())
+    .map(|x| x.unwrap())
+    .collect::<Vec<&str>>();
+```
+- There is a more easy way to do this, by using `flatten` method on the iterator.
+```rust
+let valid_products = products.into_iter().flatten().collect::<Vec<&str>>();
+```

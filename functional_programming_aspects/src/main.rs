@@ -1,4 +1,4 @@
-use functional_programming_aspects::closures;
+use functional_programming_aspects::{closures, iterating_through_options};
 use functional_programming_aspects::{combinators, functional_pointers, into_iterator, iterating_through_collections, iterators};
 
 fn main() {
@@ -19,5 +19,8 @@ fn main() {
 
     println!("\n\n################ Combinators ################\n");
     combinators::main();
+
+    println!("\n\n################ Iterating through Options ################\n");
+    iterating_through_options::main();
 
 }
