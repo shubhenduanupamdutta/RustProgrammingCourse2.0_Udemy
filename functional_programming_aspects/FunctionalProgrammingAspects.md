@@ -267,3 +267,98 @@ Employee 2
     - `Items` returned must have to the same type.
 
 -------------------------------------------------------
+## IntoIterator
+-------------------------------------------------------
+- How the trait is defined in std library.
+```rust
+trait IntoIterator {
+    type Item;
+    type IntoIter: Iterator;
+    fn into_iter(self) -> Self::IntoIter;
+}
+```
+- There is a key difference between `Iterator` and `IntoIterator` trait. `Iterator` is implemented on a type over which you can iterate over, and `IntoIterator` is implemented on a type which can be converted into an iterator.
+```rust
+struct Book {
+    title: String,
+    author: String,
+    genre: String,
+}
+
+struct BookIterator {
+    properties: Vec<String>,
+}
+
+```
+- `BookIterator` is created to iterate over the properties of the `Book` struct.
+- First we need a struct, which will hold an `Iterator State`, and by state we mean the current item, which needs to be returned by the next method. And then we need to implement iterator trait for this struct.
+- Here `BookIterator` is such a struct.
+```rust
+impl Iterator for BookIterator {
+    type Item = String;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if !self.properties.is_empty() {
+            Some(self.properties.remove(0))
+        } else {
+            None
+        }
+    }
+}
+```
+- This is a simple implementation of the `Iterator` trait for the `BookIterator` struct.
+- This will iterate over properties of the `Book` struct.
+- Now let's implement `IntoIterator` trait for the `Book` struct.
+```rust
+impl IntoIterator for Book {
+    type Item = String;
+    type IntoIter = BookIterator;
+
+    fn into_iter(self) -> Self::IntoIter {
+        BookIterator {
+            properties: vec![self.title, self.author, self.genre],
+        }
+    }
+}
+```
+- Above code will transform the `Book` struct into an iterator, i.e. a type which has implemented the `Iterator` trait, here `BookIterator`.
+- Let's use it in main.
+```rust
+pub fn main() {
+    let book_1 = Book {
+        title: "Harry Potter and the Philosopher's Stone".to_string(),
+        author: "J.K. Rowling".to_string(),
+        genre: "Fantasy".to_string(),
+    };
+
+    let mut book_iterator = book_1.into_iter();
+
+    println!("{:?}", book_iterator.next());
+    println!("{:?}", book_iterator.next());
+    println!("{:?}", book_iterator.next());
+    println!("{:?}", book_iterator.next());
+}
+```
+- `into_iter()` method is used to convert the `Book` struct into an iterator, on which we can call `next` method.
+- The main advantage of `IntoIterator` trait is that it allows us to convert a type into an iterator, which can be used in `for` loop or other iterator consuming context/methods.
+```rust
+for property in book_iterator {
+    println!("{}", property);
+}
+```
+- Above code will print the properties of the `Book` struct.
+- **NOTE:** We have used `BookIterator` type when implementing `IntoIterator` trait for the `Book` struct, but we can also use `std::vec::IntoIter` type, which is a type of iterator returned by the `into_iter` method of a vector.
+```rust
+impl IntoIterator for Book {
+    type Item = String;
+    type IntoIter = std::vec::IntoIter<Self::Item>
+
+    fn into_iter(self) -> Self::IntoIter {
+        vec![self.title, self.author, self.genre].into_iter()
+    }
+}
+```
+- In this case we are using `std::vec::IntoIter` type, which is a type of iterator returned by the `into_iter` method of a vector.
+- This is a more idiomatic way of implementing `IntoIterator` trait for the `Book` struct.
+- This is because `std::vec::IntoIter` is a type which is used to iterate over the elements of a vector, and it is more efficient than the `BookIterator` type.
+- And we wouldn't have to implement the `Iterator` trait for the `BookIterator` type, or even define the `BookIterator` type.
