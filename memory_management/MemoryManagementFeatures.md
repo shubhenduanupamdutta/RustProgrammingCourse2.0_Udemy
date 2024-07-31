@@ -92,3 +92,101 @@ fn mutable_and_immutable_references() {
 ```
 - If we exchange line 3 and 4, then the code will not compile.
 - This is because the lifetime of `ref_1` and `ref_2` will overlap, even `Non-Lexical` ones, and this is not allowed in Rust.
+
+========================================================
+### Generic Lifetimes
+========================================================
+```rust
+pub fn main() {
+    let int1 = 5;
+    let int2 = 10;
+    let picked_value = picking_int(&int1, &int2);
+    println!("Picked value: {}", picked_value);
+}
+
+fn picking_int(i: &i32, j: &i32) -> i32 {
+    if rand::random() {
+        *i
+    } else {
+        *j
+    }
+}
+```
+- Consider the above program. In the program above we have `picking_int` function that takes two references to `i32` values and returns one of them based on a random number.
+- Above program will compile and run without any issues.
+- But what if we want to return a reference to one of the values instead of the value itself.
+- If we modify the program as follows
+```rust
+fn picking_int(i: &i32, j: &i32) -> &i32 {
+    if rand::random() {
+        i
+    } else {
+        j
+    }
+}
+```
+- The above code will not compile, and will throw an error `missing lifetime specifier`.
+- Let's think about it from borrow-checker's perspective.
+- How borrow-checker (B-C) will determine if the `picked_value` is not a dangling reference, when we print it after the function call.
+- To figure it out B-C will look at lifetime of the `picked_value`.
+- In this code since we are returning a reference of either `i` or `j`, the `picked_value` will have a lifetime of either `i` or `j`. But B-C doesn't know which one, so that results in an error.
+- `Lifetime Specifiers` are also known as `generic lifetime annotations`.
+- It is a way to describe the relationship between lifetimes of references.
+- They shouldn't be confused with `concrete lifetimes`, but are used to describe the relationship between `concrete lifetimes`.
+- Let's modify the above code to include lifetime specifiers.
+```rust
+fn picking_int<'a>(i: &'a i32, j: &'a i32) -> &'a i32 {
+    if rand::random() {
+        i
+    } else {
+        j
+    }
+}
+```
+- In the above code, we have added a lifetime specifier `'a` to the function definition and the return type.
+- So what does this tell about lifetime of `picked_value`?
+- It tells that the lifetime of `picked_value` is the same as the shorter of the lifetimes of `i` and `j`.
+- If we change the main function as follows
+```rust
+pub fn main() {
+    let int1 = 5;
+    {
+        let int2 = 10;
+        let picked_value = picking_int(&int1, &int2);
+        println!("Picked value: {}", picked_value);
+    }
+}
+```
+- In the above code, the lifetime of `int2` is limited to the block in which it is defined.
+- So lifetime of `picked_value` will be the same as the lifetime of `int2`, since it has shorter lifetime.
+```rust
+pub fn main() {
+    let int1 = 5;
+    let picked_value;
+    {
+        let int2 = 10;
+        picked_value = picking_int(&int1, &int2);
+        println!("Picked value: {}", picked_value);
+    }
+    println!("Picked value: {}", picked_value);
+}
+```
+- Above code will not compile, because the lifetime of `picked_value` is limited to the block in which it is defined.
+- Essentially last print statement can become a dangling reference if `picking_int` returns reference to `int2`. So rust doesn't allow this code to compile.
+- There can be different types of relationship, based on what your function does.
+- For example, function always returns reference to first parameter.
+```rust
+fn picking_int<'a>(i: &'a i32, j: &i32) -> &'a i32 {
+    i
+}
+```
+- It is important to note that typically lifetime of returned value should be linked to lifetime of input parameters.
+- This is because when a function returns a reference, it should point to one of the inputs provided in the argument.
+- If a function returns reference to a value, that is created inside the function, then the reference becomes invalid as soon as the function ends.
+- If we really want to return a reference to a value created inside the function, then we can use `static` lifetime.
+```rust
+fn picking_int<'a>(i: &'a i32, j: &i32) -> &'static i32 {
+    let y: &'static i32 = &5;
+    y
+}
+```
