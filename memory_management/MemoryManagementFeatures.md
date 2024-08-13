@@ -190,3 +190,67 @@ fn picking_int<'a>(i: &'a i32, j: &i32) -> &'static i32 {
     y
 }
 ```
+========================================================
+### Lifetime Elision
+========================================================
+- Consider the following program
+```rust
+pub fn main() {
+    let str_1 = "some str";
+    let received_str = return_str(&str_1);
+}
+
+fn return_str(s_1: &str) -> &str {
+    s_1
+}
+```
+- In the above code, we have a function `return_str` that takes a reference to a string and returns a reference.
+- Even though we are taking in a reference and returning a reference, compiler doesn't complain about missing lifetime specifiers.
+- This is because of `Lifetime Elision`.
+- `Lifetime Elision` is a feature in Rust, that allows the compiler to infer the lifetimes of references in function and method signatures, making it more readable.
+- Rust compiler follows three lifetime elision rules to determine the lifetimes of references.
+    1. Each parameter that is a reference, gets its own lifetime parameter.
+    2. If there is exactly one input lifetime parameter, then that lifetime is assigned to all output lifetime parameters.
+    3. If there are multiple input lifetime parameters, but one of them is `&self` or `&mut self`, then the lifetime of `self` is assigned to all output lifetime parameters.
+- After applying the elision rules, if the lifetime of the reference can't be inferred, then the compiler will throw an error.
+- Let's look at the above code, keeping in mind elision rules, rust compiler will treat the above code as
+```rust
+fn return_str<'a>(s_1: &'a str) -> &'a str {
+    s_1
+}
+```
+- So, the lifetime of output of `return_str` function is the same as the lifetime of input parameter `s_1`.
+- Let's look at another example
+```rust
+fn return_str(s_1: &str, s_2: &str) -> &str {
+    if s_1.len() > s_2.len() {
+        s_1
+    } else {
+        s_2
+    }
+}
+```
+- In the above code, we have two input parameters `s_1` and `s_2`, and we are returning a reference to one of them.
+- After applying elision rules, each parameter will have its own lifetime parameter, and since there are multiple input lifetime parameters, the compiler will throw an error.
+```rust
+fn return_str<'a, 'b>(s_1: &'a str, s_2: &'b str) -> &str {
+    if s_1.len() > s_2.len() {
+        s_1
+    } else {
+        s_2
+    }
+}
+```
+- In this case we have two input lifetime parameters, so we need to specify the lifetime of the output reference.
+- We can specify the lifetime of the output reference as `'a` or `'b`, because the output reference will have the same lifetime as either `s_1` or `s_2`.
+```rust
+fn return_str_2<'a, 'b: 'a>(s_1: &'a str, s_2: &'b str) -> &'a str {
+    if s_1.len() > s_2.len() {
+        s_1
+    } else {
+        s_2
+    }
+}
+```
+- In the above code, we have specified that the lifetime of `s_2` is at least as long as the lifetime of `s_1`.
+- `'b: 'a` means that the lifetime of `s_2` is at least as long as the lifetime of `s_1`.

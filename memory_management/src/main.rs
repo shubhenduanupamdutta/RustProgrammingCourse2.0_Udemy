@@ -1,4 +1,4 @@
-use memory_management::{concrete_lifetimes, generic_lifetimes};
+use memory_management::{concrete_lifetimes, generic_lifetimes, lifetime_elision};
 
 fn main() {
     println!("############ Lifetimes in Rust ############\n");
@@ -7,4 +7,7 @@ fn main() {
 
     println!("2. Generic Lifetimes\n");
     generic_lifetimes::main();
+
+    println!("3. Lifetime Elision\n");
+    lifetime_elision::main();
 }
