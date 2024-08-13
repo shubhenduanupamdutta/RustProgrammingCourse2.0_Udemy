@@ -254,3 +254,49 @@ fn return_str_2<'a, 'b: 'a>(s_1: &'a str, s_2: &'b str) -> &'a str {
 ```
 - In the above code, we have specified that the lifetime of `s_2` is at least as long as the lifetime of `s_1`.
 - `'b: 'a` means that the lifetime of `s_2` is at least as long as the lifetime of `s_1`.
+========================================================
+### Lifetime Annotations in Structs
+========================================================
+- So far we have only seen struct with owned fields, but what if we have a struct with references.
+- Let's look at an example
+```rust
+struct ArrayProcessor {
+    data: &[i32],
+}
+```
+- It is quite possible that the reference becomes invalid during the execution of the program, while the instance of the struct is still alive.
+- In such cases, struct field will become a dangling reference.
+- To prevent this, in Rust, all the struct field which contain reference to a value, must contain a generic lifetime annotation/specifier.
+- Let's modify the above code with lifetime specifier.
+```rust
+struct ArrayProcessor<'a> {
+    data: &'a [i32],
+}
+```
+- Note that, unlike functions, lifetime elision are not defined for structs.
+- It is quite obvious that the reference to which field is pointing to, should have a lifetime at least as long as that of the struct. We expect compiler to infer this automatically, but this is not the case.
+- It's more of a language design issue.
+- The reason why functions and methods have lifetime elision rules and struct do not, maybe because we tend to use references far more often in functions and methods than in structs.
+- Let's create an implementation block for `ArrayProcessor` struct.
+- Just like with generics, we must include generic lifetime annotation inside our impl block.
+```rust
+impl<'a> ArrayProcessor<'a> {
+    fn update_data(&mut self, new_data: &'a [i32]) -> &[i32] {
+        let previous_data = self.data;
+        self.data = new_data;
+        &previous_data
+    }
+}
+```
+- In the above code, we have an implementation block for `ArrayProcessor` struct, and we have a method `update_data` that takes a reference to a slice of `i32` values and returns a reference to the previous data.
+- We have included a generic lifetime annotation `'a` inside the impl block, because the method `update_data` takes a reference to a slice of `i32` values, and returns a reference to the previous data.
+- With lifetime elision rules, the above code will be treated as
+```rust
+impl<'a> ArrayProcessor<'a> {
+    fn update_data<'b>(&'b mut self, new_data: &'a [i32]) -> &'a [i32] {
+        let previous_data = self.data;
+        self.data = new_data;
+        &previous_data
+    }
+}
+```
