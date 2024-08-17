@@ -511,3 +511,119 @@ pub fn main() {
     - Conceptually, in a graph, a node is owned by all the edges that point to it.
     - A node shouldn't be cleaned up, unless it doesn't have any edges pointing to it and so has no owners.
 - NOTE: As a side note, we have already been using a couple of smart pointers that are `String` and `Vec`. Having the special information of capacity they occupy in memory, and both of them also owns the data they are referring to in the memory.
+========================================================
+### RefCell Smart Pointer
+========================================================
+- Like `Box` pointer, it provides single ownership of data.
+- An interesting property of `RefCell` is that it enforces borrowing rules to be checked at runtime, not at compile time.
+- It means that if you violate the borrowing rules at runtime, then the program will panic and exit.
+```rust
+pub fn main() {
+    let mut x = 50;
+    let x1 = &x;
+    let x2 = &x;
+    let x3 = &mut x;
+
+    println!("x1: {}, x2: {}, x3: {}", x1, x2, x3);
+}
+```
+- This code will not compile, because we are trying to borrow `x` as mutable and immutable at the same time. It is a violation of borrowing rules.
+```rust
+use std::cell::RefCell;
+
+fn main() {
+    let a = RefCell::new(10);
+    let b = a.borrow();
+    let c = a.borrow();
+    let d = a.borrow_mut();
+
+    println!("b: {}, c: {}", b, c);
+}
+
+```
+- In the above code, we have used `RefCell` smart pointer.
+- `RefCell` provides two methods `borrow` and `borrow_mut` to borrow the value.
+- In the above code, we have borrowed the value `a` as immutable twice, and then as mutable.
+- This code will pass compiler checks and will panic at runtime.
+- The advantage of checking borrowing rules at compile times are:
+    - Errors will be caught sooner in the development cycle.
+    - There is no runtime overhead.
+    - So checking borrowing rules at compile time is default behavior in Rust.
+- Advantage of checking borrowing rules at runtime are:
+    - Certain memory safe scenarios are allowed, which are not possible with compile time checks.
+    - Because certain properties of the code is impossible to detect using static analysis.
+- The references to `RefCell` do not follow the non-lexical lifetimes, this means they are tied to the scope in which they are defined.
+- In above code, `b`, `c` and `d` are tied to the scope in which they are defined, remain in memory till the end of the scope.
+- We can call `drop` method on `RefCell` to explicitly drop the value.
+```rust
+use std::cell::RefCell;
+
+fn main() {
+    let a = RefCell::new(10);
+    let b = a.borrow();
+    let c = a.borrow();
+    let d = a.borrow_mut();
+
+    // println!("b: {}, c: {}", b, c);
+
+    drop(a);
+    drop(b);
+}
+```
+- Above code will compile and run without any issues.
+- An alternative to drop will be to define variable `b` and `c` in a separate scope.
+```rust
+use std::cell::RefCell;
+
+fn main() {
+    let a = RefCell::new(10);
+    {
+        let b = a.borrow();
+        let c = a.borrow();
+    }
+    let d = a.borrow_mut();
+
+    println!("a: {}", a);
+}
+```
+- In the above code, `b` and `c` are defined in a separate scope, so they will be dropped at the end of the scope.
+- Printing in above case will output `RefCell { value: <borrowed> }`. This is because when this print was called, `d` was borrowing the value, which can be changed.
+- If we drop `d` before the print statement, then the output will be `RefCell { value: 10 }`.
+- The checking of borrowing rules at runtime allows something called `Interior Mutability`.
+```rust
+// Rust doesn't allow the following
+let x = 5;
+let y = &mut x;
+```
+- Using `RefCell` smart pointer, we can mutate the value, even if the value itself is immutable.
+- Data is mutable on the inside, but we don't expose that mutability to the outside. So the outside world doesn't know that data can be mutated.
+
+```rust
+use std::cell::RefCell;
+
+fn main () {
+    let a = RefCell::new(10);
+    let mut b = a.borrow_mut();
+    *b = 15;
+}
+```
+- In the above code, we have borrowed the value `a` as mutable, and then changed the value.
+- `RefCell` doesn't implement a `Deref` trait, so we need to use `*` to dereference a borrowed value like `b` not `a` itself.
+- `RefCell` smart pointer is not that powerful by itself, but when combined by `RC smart pointer` some amazing things can happen?
+- #### Combining `RC` and `RefCell` smart pointers
+```rust
+use std::cell::RefCell;
+use std::rc::Rc;
+
+let a = Rc::new(RefCell::new(String::from("C++")));
+```
+- The `Rc` provides multiple immutable ownership, but `RefCell` providing mutable access to internal data. Multiple owners are given the ability to mutate the internal data.
+- This is a powerful combination, and can be used in many scenarios.
+- For instance, let's create owner of data,
+```rust
+let b = Rc::clone(&a);
+
+*b.borrow_mut() = String::from("Rust");
+println!("a: {:?}", a);
+```
+- `Box`, `Rc` and `RefCell` are the fundamental types of smart pointers, that covers majority of our use cases.
