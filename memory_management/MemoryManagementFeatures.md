@@ -456,3 +456,58 @@ let data = vec![Box::new(data_3), data_4, data_5];
 - To enable the vector to store different types, that have same trait, we can tell the compiler to store any type in the vector that implements the `Storage` trait.
 - This can be mentioned using `trait objects`.
 
+========================================================
+### RC (Reference Counting) Smart Pointer
+========================================================
+- According to Rust ownership rule, there must be exactly one owner of a value.
+- There are however situations which demand to have multiple owners of a value.
+- Suppose there is a `list A` which is pointed by `list B` and `list C`.
+- `list A` should remain in memory as long as it is being pointed by either `list B` or `list C`.
+- If we delete `list A` then the pointers in `list B` and `list C` which points to `list A` will become dangling pointers/invalid.
+```rust
+enum List {
+    Cons(i32, Option<Box<List>>),
+}
+
+fn main() {
+    let a = List::Cons(1, Some(Box::new(List::Cons(2, None))));
+    let b = List::Cons(3, Some(Box::new(a)));
+    let c = List::Cons(4, Some(Box::new(a)));
+}
+```
+- For the above code, compiler will throw an error at `let c = ...` line, `use of moved value: 'a'`.
+- This is because `a` is moved to `b`, and we are trying to use it again in `c`.
+- We can't use a reference to a, because we are already creating a Box around it, and the inside, as per definition of struct, should be a value, not a reference.
+- Here comes the `RC` smart pointer.
+```rust
+use std::rc::Rc;
+
+#[derive(Debug)]
+enum List {
+    Cons(i32, Option<Rc<List>>),
+}
+
+pub fn main() {
+    let a = Rc::new(List::Cons(1, Some(Rc::new(List::Cons(2, None)))));
+    let b = List::Cons(3, Some(Rc::clone(&a)));
+    let c = List::Cons(4, Some(Rc::clone(&a)));
+}
+```
+- In the above code, we have used `Rc` smart pointer.
+- To enable `List b` to point at `List a` `Rc` provides a clone function, which takes in a reference to the `Rc` smart pointer, and returns a new `Rc` smart pointer pointing to the same value.
+- What the `Rc` did is that it now treats `a`, `b` and `c` as owners of the value. In other words, they share ownership of the value.
+- `Rc` smart pointer is equivalent to `shared_ptr` in C++.
+- Internally, `Rc::clone` doesn't make a deep copy, which is unlike default implementation of `clone` in Rust.
+- `Rc::clone` just increments the reference count of the value, and returns a new `Rc` smart pointer pointing to the same value. Therefor it is computationally efficient/cheap.
+- When we create `a` via the line `let a = Rc::new(...)`, the reference count of the list is set to 1.
+- When we create `b` and `c` via the line `let b = ...` and `let c = ...`, the reference count of the list is incremented to 3.
+- At the end of `main` function, all the variables will be dropped, in `LIFO` order.
+- First `c` will be dropped, then `b`, and then `a`.
+- As `c` is dropped, reference count of the list will be decremented to 2.
+- As `b` is dropped, reference count of the list will be decremented to 1.
+- As `a` is dropped, reference count of the list will be decremented to 0 and the memory is deallocated.
+- #### Reference counter smart pointer has many use cases, like graph, trees, linked list, etc.
+- for example, in graph data structure, we have multiple edges, which may point to the same node.
+    - Conceptually, in a graph, a node is owned by all the edges that point to it.
+    - A node shouldn't be cleaned up, unless it doesn't have any edges pointing to it and so has no owners.
+- NOTE: As a side note, we have already been using a couple of smart pointers that are `String` and `Vec`. Having the special information of capacity they occupy in memory, and both of them also owns the data they are referring to in the memory.

@@ -1,4 +1,4 @@
-use memory_management::{box_smart_pointer, concrete_lifetimes, generic_lifetimes, lifetime_elision, lifetimes_structs};
+use memory_management::{box_smart_pointer, concrete_lifetimes, generic_lifetimes, lifetime_elision, lifetimes_structs, rc_smart_pointer};
 
 fn main() {
     println!("############ Lifetimes in Rust ############\n");
@@ -18,4 +18,8 @@ fn main() {
     println!("\n############ Smart Pointers in Rust ############\n");
     println!("1. Box Smart Pointer\n");
     box_smart_pointer::main();
+
+    println!("\n2. Reference Counting (RC) Smart Pointer\n");
+    rc_smart_pointer::main();
+
 }
