@@ -2,6 +2,8 @@
 //           Typical Data Structures
 //-------------------------------------------------
 
+use typical_data_structures::linked_list;
+
 fn main() {
     println!("############## Typical Data Structures in Rust. ##############\n");
 
