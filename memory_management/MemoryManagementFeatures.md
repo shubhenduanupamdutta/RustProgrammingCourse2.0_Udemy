@@ -254,6 +254,7 @@ fn return_str_2<'a, 'b: 'a>(s_1: &'a str, s_2: &'b str) -> &'a str {
 ```
 - In the above code, we have specified that the lifetime of `s_2` is at least as long as the lifetime of `s_1`.
 - `'b: 'a` means that the lifetime of `s_2` is at least as long as the lifetime of `s_1`.
+
 ========================================================
 ### Lifetime Annotations in Structs
 ========================================================
@@ -300,3 +301,158 @@ impl<'a> ArrayProcessor<'a> {
     }
 }
 ```
+
+--------------------------------------------------------
+## Smart Pointers
+--------------------------------------------------------
+- There are many different types of smart pointers in rust, serving different purposes.
+- Key differences between a pointer and a smart pointer
+- #### Simple Pointer
+    - Simple pointer variable stores the memory address of some variable/value. We have been using such pointers throughout the course.
+    - Usually indicated by `&` symbol.
+    - They are also called `references`.
+    - Other than referring to or pointing to some value, these references don't have any additional functionality.
+- #### Smart Pointer
+    - They are not just simple references, but they also have additional functionality.
+    - They also include some metadata along with the memory address.
+
+========================================================
+### Box Smart Pointers
+========================================================
+- By default Rust allocates everything on the stack.
+
+```rust
+fn main() {
+    let x: f64 = 5.0;
+}
+```
+- In the above code, `x` is allocated on the stack.
+- But what if we want to allocate `x` on the heap, then we can use `Box` smart pointer.
+```rust
+fn main() {
+    let x: f64 = 5.0;
+    let y: Box<f64> = Box::new(x);
+}
+```
+- In the above code, `y` is allocated on the heap.
+- Variable `y` is a `Box` smart pointer, and it contains the memory address of the value `5.0` which is allocated on the heap.
+- Variable x will remain on the stack in this case.
+```rust
+fn main() {
+    let x: f64 = 5.0;
+    let y: Box<f64> = Box::new(x);
+    let z = &x;
+}
+```
+- In the above code, `z` is a reference to the value `5.0` which is allocated on the stack, not on heap.
+- `Box` smart pointers are similar to unique pointers in C++.
+
+- #### Use cases of box pointer
+```rust
+#[derive(Debug)]
+enum List {
+    Cons(i32, List),
+    Nil,
+}
+
+fn main() {
+    let list = List::Cons(1, List::Cons(2, List::Cons(3, List::Nil)));
+}
+```
+- The idea is that a list which may contain other lists.
+- But above code will throw an error, `recursive type 'List' has infinite size`.
+- The problem with recursive types is that the rust compiler is unable to know the exact size of the instance of such type at compile time.
+- Rust needs to know the size of the instance at compile time, so that it can allocate memory for it.
+- But the size of the instance of `List` is not known at compile time, because it may contain other instances of `List`.
+- Let's look at a simple enum.
+```rust
+enum Conveyance {
+    Car(i32),
+    Train(i32),
+    Air(i32),
+    Walk,
+}
+```
+- In the above code, to determine the size of the instance of `Conveyance`, rust compiler needs to know the size of the largest variant by size.
+- Compiler will go through each of the variants and determine the size of the largest variant.
+- In this case, the largest space will be size of `i32`.
+- But in case of `List`, the size of the instance is not known at compile time, because it may contain other instances of `List`, and we don't know how much space `List` will take.
+- To solve this problem, we can use `Cons` behind some kind of pointer.
+```rust
+#[derive(Debug)]
+enum List {
+    Cons(i32, Box<List>),
+    Nil,
+}
+
+let list = List::Cons(
+        1,
+        Box::new(List::Cons(2, Box::new(List::Cons(3, Box::new(List::Nil))))),
+    );
+
+```
+- In the above code, we have wrapped the `List` enum inside a `Box` smart pointer.
+- So now the size of the instance of `List` is known at compile time, because the size of the instance of `Box` is known at compile time. So rust compiler can allocate memory for it.
+- Above code works, but it can be improved.
+- If we look at the enum, we can see that in case of `Cons`, we are always making a new heap allocation by calling the new function, irrespective of whether the next variant will be a `Cons` or `Nil`.
+- `Nil` variant doesn't need a heap allocation, because it doesn't contain any data, it basically terminates the recursion, representing end of the list.
+- In the last variant, `Nil` is unnecessary being wrapped in a `Box`, i.e. assigned to a heap allocation.
+- This can we improved by using `Option` enum.
+```rust
+#[derive(Debug)]
+enum List {
+    Cons(i32, Option<Box<List>>),
+    Nil
+}
+
+let list = List::Cons(
+    1,
+    Some(Box::new(List::Cons(2, Some(Box::new(List::Cons(3, None))))))
+);
+
+println!("list: {:?}", list);
+```
+- Using above code, when we have a further cons variance, we will have `Some` boxed list, and when we want to terminate, we wil use `None` variant.
+- This way we can avoid unnecessary heap allocations, and we don't need to have a not needed second variant `Nil`.
+- `Nil` can be indicated by `None` variant of `Cons`.
+- In the above case, list construction is more precise and efficient.
+- #### Let's look at couple of more use cases, where `Box` may be beneficial.
+- `Box` is also useful when copying large amounts of data, when transferring ownership.
+
+```rust
+let data_1 = HugeData;
+let data_2 = Box::new(HugeData);
+
+let data_3 = data_1;
+let data_4 = data_2;
+```
+- In the above code, `HugeData` is a large data structure.
+- In the first case, `data_1` is allocated on the stack, and `data_2` is allocated on the heap.
+- Then we are transferring ownership of `data_1` to `data_3`, and `data_2` to `data_4`.
+- In the first case, `data_1` is copied to `data_3`, which is a costly operation, because `HugeData` is a large data structure, and it is residing on the stack.
+- In the second case, `data_2` is copied to `data_4`, but since `data_2` is a `Box` smart pointer, it is just a memory address, which is a cheap operation.
+- In this exact case, `HugeData` doesn't have anything to be copied, but suppose we have large data structure, then copying it will be a costly operation.
+- #### Another use case of `Box` Smart Pointer
+- Consider that we would like to create a vector of different types that implement some trait.
+
+```rust
+
+struct SmallData {}
+struct HugeData {}
+
+trait Storage{}
+
+impl Storage for HugeData {}
+impl Storage for SmallData {}
+```
+- Now suppose we want to define a vector of types that implement the `Storage` trait
+```rust
+let data_5 = Box::new(SmallData);
+let data = vec![Box::new(data_3), data_4, data_5];
+```
+- `let data ...` line will throw an error, `mismatched type, expected Box<HugeData>, found Box<SmallData>`.
+- The problem is that the vector `data` is expecting all the elements to be of the same type, but in this case we have different types.
+- Remember that vector can only store value that have the same type.
+- To enable the vector to store different types, that have same trait, we can tell the compiler to store any type in the vector that implements the `Storage` trait.
+- This can be mentioned using `trait objects`.
+
