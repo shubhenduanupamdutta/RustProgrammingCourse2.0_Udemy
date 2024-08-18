@@ -305,3 +305,62 @@ fn print(&self) {
     }
 }
 ```
+--------------------------------------------------
+## Reference Cycles
+--------------------------------------------------
+- Rust is known for being a memory safe language, it employs strong mechanism which provides guarantees that you can't have data races.
+- However, it doesn't provide same sort of strong guarantees when it comes to memory leaks.
+- Rust attempts to make it difficult, but not impossible to create memory that is never cleaned up.
+- Memory leaks can happen when using `Rc` and `RefCell` smart pointers, because they allow for multiple ownership and interior mutability respectively.
+- Using these smart pointers, a set of references can be created, where items reference each other in a cycle.
+- This will cause a memory leak, because the reference count of each item in the cycle will never reach zero.
+- Let's see an example of reference cycle.
+```rust
+
+use std::rc::Rc;
+use std::cell::RefCell;
+
+#[derive(Debug)]
+struct Node {
+    next: Option<Rc<RefCell<Node>>>,
+}
+
+impl Drop for Node {
+    fn drop(&mut self) {
+        println!("Dropping Node, {:?}", self);
+
+    }
+}
+
+pub fn main() {
+    let a = Rc::new(RefCell::new(Node { next: None }));
+    println!("a count: {:?}", Rc::strong_count(&a));
+
+    let b = Rc::new(RefCell::new(Node { next: Some(Rc::clone(&a))}));
+    println!("B is created.\na count: {:?}", Rc::strong_count(&a));
+    println!("b count: {:?}", Rc::strong_count(&b));
+
+    let c = Rc::new(RefCell::new(Node { next: Some(Rc::clone(&b))}));
+    println!("C is created.\na count: {:?}", Rc::strong_count(&a));
+    println!("b count: {:?}", Rc::strong_count(&b));
+    println!("c count: {:?}", Rc::strong_count(&c));
+
+    // Now let's create a reference cycle
+    // c -> b -> a -> c
+
+    (*a).borrow_mut().next = Some(Rc::clone(&c));   // This lines create cycle
+    println!("After creating reference cycle.");
+    println!("a count: {:?}", Rc::strong_count(&a));
+    println!("b count: {:?}", Rc::strong_count(&b));
+    println!("c count: {:?}", Rc::strong_count(&c));
+
+    // Let's trigger an overflow
+    // println!("a: {:?}", a); // This will trigger a stack overflow
+
+}
+```
+- In the above code we have created a reference cycle, where `c` points to `b`, `b` points to `a`, and `a` points to `c`.
+- In this case, we have also implemented a drop, but it never gets called, because the reference count of each item in the cycle will never reach zero.
+- All `a`, `b` and `c` all have reference count of 2, because they are being pointed by two references. So the drop method will never be called.
+- If we comment out the code, which creates the reference cycle, then the drop method will be called, and the reference count will be 1.
+- Rust provides a nice solution for handling reference cycles, instead of using `Rc` we can use `Weak` smart pointer.
