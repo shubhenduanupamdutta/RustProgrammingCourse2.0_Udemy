@@ -184,3 +184,124 @@ fn print(&self) {
 }
 ```
 - This method will print the list in order.
+==================================================
+### Doubly Linked List
+==================================================
+- Singly linked list allows navigation only in one direction, that is forward. Doubly linked list allows navigation in both directions, that is forward and backward.
+- Each node is associated with two pointers, one pointing to the next node, and the other pointing to the previous node.
+- There is also one critical observation from programming perspective, each and every is being pointed by more than one pointer.
+- This means we need to implement, multiple ownership of the node, which is not possible with simple `Box` type.
+- We can use `Rc` type, which is a reference counted smart pointer, which allows multiple ownership of the same data.
+- In addition to this, we may require to modify the data by accessing the nodes using either the next or the previous pointer.
+- This means we not only want to have multiple ownership of the node, but also want to have mutable access to the node.
+- This functionality can only be provided by `RefCell` smart pointer, which is wrapped around by `Rc` smart pointer.
+```rust
+struct Node {
+    element: i32,
+    next: Pointer,
+    previous: Pointer,
+}
+
+struct DoublyLinkedList {
+    head: Pointer,
+    tail: Pointer,
+}
+
+type Pointer = Option<Rc<RefCell<Node>>>;
+
+impl DoublyLinkedList {
+    fn new() -> Self {
+        DoublyLinkedList {
+            head: None,
+            tail: None,
+        }
+    }
+
+    fn add(&mut self, element: i32) {
+        let new_head = Rc::new(RefCell::new(Node {
+            element,
+            next: None,
+            previous: None,
+        }));
+
+        match self.head.take {
+            Some(old_head) => {
+                old_head.borrow_mut().previous = Some(new_head.clone());
+                new_head.borrow_mut().next = Some(old_head.clone());
+                self.head = Some(new_head);
+            },
+            None => {
+                self.tail = Some(new_head.clone());
+                self.head = Some(new_head);
+            }
+        }
+    }
+}
+```
+- In add function, if current head is `None` we don't clone the `new_head` into `self.head`, because we want to keep the ownership of the `new_head` to self.head. Using this we have only two owners `self.tail` and `self.head`, with `self.head` having ownership of the `new_head`.
+- Let's implement the method to add to the back of doubly linked list.
+```rust
+fn add_to_back(&mut self, element: i32) {
+    let new_tail = Node::new(element);
+
+    match self.tail.take() {
+        Some(old_tail) => {
+            old_tail.borrow_mut().next = Some(new_tail.clone());
+            new_tail.borrow_mut().previous = Some(old_tail.clone())
+        },
+        None => {
+            self.head = Some(new_tail.clone());
+            self.tail = Some(new_tail);
+
+        }
+    }
+}
+```
+- Where `Node::new` is a helper function to create a new node.
+```rust
+impl Node {
+    fn new(element: i32) -> Rc<RefCell<Node>> {
+        Rc::new(RefCell::new(Node {
+            element,
+            next: None,
+            previous: None,
+        }))
+    }
+}
+```
+- Method to remove the first element from the doubly linked list.
+```rust
+fn remove(&mut self) -> Option<i32> {
+        if self.head.is_none() {
+        println!("List is empty so we can't remove anything.");
+        return None;
+    } else {
+        let removed_value = self.head.as_ref().unwrap().borrow().element;
+        self.head
+            .take()
+            .map(|old_head| match old_head.borrow_mut().next.take() {
+                Some(new_head) => {
+                    new_head.borrow_mut().previous = None;
+                    self.head = Some(new_head);
+                    self.head.clone()
+                }
+                None => {
+                    self.tail = None;
+                    println!("List is empty after removal.");
+                    None
+                }
+            });
+        Some(removed_value)
+    }
+}
+```
+- Method to print the doubly linked list.
+```rust
+fn print(&self) {
+    let mut traversal = self.head.clone();
+    while !traversal.is_none() {
+        println!("{}", traversal.as_ref().unwrap().borrow().element);
+        traversal = traversal.unwrap().borrow().next.clone();
+    }
+}
+```

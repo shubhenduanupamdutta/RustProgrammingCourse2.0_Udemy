@@ -2,12 +2,15 @@
 //           Typical Data Structures
 //-------------------------------------------------
 
-use typical_data_structures::linked_list;
+use typical_data_structures::{doubly_linked_list, linked_list};
 
 fn main() {
     println!("############## Typical Data Structures in Rust. ##############\n");
 
     println!("\n============ 1. Singly Linked List ============\n");
     linked_list::main();
+
+    println!("\n============ 2. Doubly Linked List ============\n");
+    doubly_linked_list::main();
 
 }
