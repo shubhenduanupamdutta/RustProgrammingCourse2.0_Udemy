@@ -4,20 +4,20 @@
 
 use std::{cell::RefCell, rc::Rc};
 
-struct Node {
-    element: i32,
-    next: Pointer,
-    previous: Pointer,
+struct Node<T> {
+    element: T,
+    next: Pointer<T>,
+    previous: Pointer<T>,
 }
 
-struct DoublyLinkedList {
-    head: Pointer,
-    tail: Pointer,
+struct DoublyLinkedList<T> {
+    head: Pointer<T>,
+    tail: Pointer<T>,
 }
 
-type Pointer = Option<Rc<RefCell<Node>>>;
+type Pointer<T> = Option<Rc<RefCell<Node<T>>>>;
 
-impl DoublyLinkedList {
+impl<T: std::fmt::Debug + std::fmt::Display + std::marker::Copy> DoublyLinkedList<T> {
     fn new() -> Self {
         DoublyLinkedList {
             head: None,
@@ -25,7 +25,7 @@ impl DoublyLinkedList {
         }
     }
 
-    fn add(&mut self, element: i32) {
+    fn add(&mut self, element: T) {
         let new_head = Node::new(element);
 
         match self.head.take() {
@@ -41,7 +41,7 @@ impl DoublyLinkedList {
         }
     }
 
-    fn add_to_back(&mut self, element: i32) {
+    fn add_to_back(&mut self, element: T) {
         let new_tail = Node::new(element);
 
         match self.tail.take() {
@@ -56,7 +56,7 @@ impl DoublyLinkedList {
         }
     }
 
-    fn remove(&mut self) -> Option<i32> {
+    fn remove(&mut self) -> Option<T> {
         if self.head.is_none() {
             println!("List is empty so we can't remove anything.");
             return None;
@@ -80,7 +80,7 @@ impl DoublyLinkedList {
         }
     }
 
-    fn remove_from_back(&mut self) -> Option<i32> {
+    fn remove_from_back(&mut self) -> Option<T> {
         if self.tail.is_none() {
             println!("List is empty so we can't remove anything.");
             return None;
@@ -113,8 +113,8 @@ impl DoublyLinkedList {
     }
 }
 
-impl Node {
-    fn new(element: i32) -> Rc<RefCell<Node>> {
+impl<T> Node<T> {
+    fn new(element: T) -> Rc<RefCell<Node<T>>> {
         Rc::new(RefCell::new(Node {
             element,
             next: None,
