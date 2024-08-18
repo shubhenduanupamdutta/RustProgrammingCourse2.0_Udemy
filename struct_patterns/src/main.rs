@@ -2,7 +2,7 @@
 //       Useful Struct Patterns
 //----------------------------------------------
 
-use struct_patterns::{builder_pattern, initializing_struct};
+use struct_patterns::{builder_pattern, initializing_struct, simplifying_structs};
 
 fn main() {
     println!("########### Useful Struct Patterns ###########");
@@ -13,4 +13,8 @@ fn main() {
     println!();
     println!("2. Builder Pattern");
     builder_pattern::main();
+
+    println!();
+    println!("3. Simplifying Structs");
+    simplifying_structs::main();
 }

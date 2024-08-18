@@ -322,3 +322,75 @@ fn main() {
 - This way functions are chained together, and instances are created in a more readable way.
 - We also have a nice single interface for constructing instances of `Customer` struct.
 - This pattern is seen frequently in Rust code, because Rust doesn't have overloading of methods, and this is a good way to manage multiple constructors.
+
+========================================================
+## Simplifying Structs
+========================================================
+
+- Sometimes a large struct, which is badly designed, will cause borrowing issues.
+```rust
+struct A {
+    f1: u32,
+    f2: u32,
+    f3: u32,
+}
+```
+- Although the individual fields can be borrowed independently, however the whole struct which is used only once, prevents other uses.
+- Consider above struct `A`.
+- Let us define a few functions for this struct.
+```rust
+fn fn1(a: &mut A) -> &u32 {
+    &a.f2,
+}
+
+fn fn2(a: &mut A) -> u32 {
+    a.f1 + a.f3,
+}
+
+fn fn3(a: &mut A) {
+    let x = fn1(a);
+    let y = fn2(a);
+
+    // This will not compile
+    println!("{x}");
+}
+```
+- The above code will not compile with error , `cannot borrow '*a' as mutable more than once at a time`.
+-  In `fn3` we call `fn1`, which returns reference to a value, which is a field of `A`. The variable `x` therefore is tied to the struct field `f2`.
+- Moreover, since the function is using the structure as a mutable borrow, therefore as long as the variable `x` is alive or in scope, the rust compiler assumes that the whole of the struct is borrowed as mutable.
+- In summary, Rust doesn't allow borrowing of a field of struct independently, it always enforces the borrowing of the whole struct.
+- How to allow borrowing of fields independently?
+- If we borrow struct immutably in `fn1` and `fn2` and then borrow the fields independently, the code will compile.
+- Also if the return value of `fn1` is not a reference but owned copy, again the code will compile.
+- One solution of this problem is to split the struct into multiple structs.
+- Each decomposed struct can be borrowed separately, allowing for more flexible behavior.
+```rust
+struct A {
+    b: B,
+    c: C,
+}
+
+struct B {
+    f2: u32,
+}
+
+struct C {
+    f1: u32,
+    f2: u32,
+}
+```
+- This decomposition will allow us to borrow the fields independently, and will have more flexible borrowing behavior.
+```rust
+fn fn1(a; &mut B) -> &u32 {
+    &a.f2
+}
+
+fn fn2(a: &mut C) -> u32 {
+    a.f1 + a.f2
+}
+
+fn fn3(a: &mut A) {
+    let x = fn1(&mut a.b);
+    let y = fn2(&mut a.c);
+    println!("{x}");
+}
