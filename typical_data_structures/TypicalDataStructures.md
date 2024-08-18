@@ -364,3 +364,67 @@ pub fn main() {
 - All `a`, `b` and `c` all have reference count of 2, because they are being pointed by two references. So the drop method will never be called.
 - If we comment out the code, which creates the reference cycle, then the drop method will be called, and the reference count will be 1.
 - Rust provides a nice solution for handling reference cycles, instead of using `Rc` we can use `Weak` smart pointer.
+- `Weak` is a special type of `Rc` smart pointer with two key function, `upgrade` and `downgrade`.
+- `upgrade` will attempt to convert it into `Rc` thereby increasing the `strong_count` by 1.
+- The `downgrade` method creates a new `Weak` pointer to the allocation, the new pointer, will hold a Non-owning reference to the managed allocation, which means it will not provide shared ownership of data. Moreover it increases the weak count by 1 and doesn't change the `strong_count`.
+- In summary, the strong references are how you share ownership of a reference counting smart pointer instance. Weak references don't express an ownership relation.
+```rust
+use std::rc::{Rc, Weak};
+use std::cell::RefCell;
+
+#[derive(Debug)]
+struct Node {
+    next: Option<Weak<RefCell<Node>>>,
+}
+
+impl Drop for Node {
+    fn drop(&mut self) {
+        println!("Dropping Node, {:?}", self);
+
+    }
+}
+
+pub fn main() {
+    let a = Rc::new(RefCell::new(Node { next: None }));
+    println!("a strong count: {:?}", Rc::strong_count(&a));
+    println!("a weak count: {:?}", Rc::weak_count(&a));
+
+    let b = Rc::new(RefCell::new(Node { next: Some(Rc::downgrade(&a))}));
+    println!("B is created.\na strong count: {:?}", Rc::strong_count(&a));
+    println!("a weak count: {:?}", Rc::weak_count(&a));
+
+    println!("b count: {:?}", Rc::strong_count(&b));
+
+    let c = Rc::new(RefCell::new(Node { next: Some(Rc::downgrade(&b))}));
+    println!("C is created.\na strong count: {:?}", Rc::strong_count(&a));
+    println!("b strong count: {:?}", Rc::strong_count(&b));
+    println!("c strong count: {:?}", Rc::strong_count(&c));
+    println!("c weak count: {:?}", Rc::weak_count(&c));
+    println!("b weak count: {:?}", Rc::weak_count(&b));
+    println!("a weak count: {:?}", Rc::weak_count(&a));
+
+    // Now let's create a reference cycle
+    // c -> b -> a -> c
+
+    // Using weak reference to avoid reference cycle
+
+    (*a).borrow_mut().next = Some(Rc::downgrade(&c));   // This lines create cycle
+    println!("After creating weak reference cycle.");
+    println!("a strong count: {:?}", Rc::strong_count(&a));
+    println!("b strong count: {:?}", Rc::strong_count(&b));
+    println!("c strong count: {:?}", Rc::strong_count(&c));
+    println!("c weak count: {:?}", Rc::weak_count(&c));
+    println!("b weak count: {:?}", Rc::weak_count(&b));
+    println!("a weak count: {:?}", Rc::weak_count(&a));
+
+    // Now following will not cause stack overflow
+    println!("a: {:?}", a); // This will trigger a stack overflow
+
+}
+```
+- In the above code, we have used `Weak` smart pointer to avoid reference cycle.
+- `Weak` pointer doesn't prevent the value it points to from being dropped, and it doesn't increase the strong reference count.
+- The next of `a` is not being displayed as it is a weak pointer and by default, the allocation pointed to by weak pointer are not displayed.
+- There are some reasons behind not displaying the value of weak pointer,
+    - Firstly, they correspond to cycles as explained
+    - Furthermore, they don't prevent the value from being dropped, so it is not guaranteed that the value will be there when we try to access it.

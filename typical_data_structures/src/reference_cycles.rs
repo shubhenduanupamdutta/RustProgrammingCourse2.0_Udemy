@@ -1,11 +1,11 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, rc::{Rc, Weak}};
 
 //--------------------------------------------------------------------------------------------------
 //      Reference Cycles
 //--------------------------------------------------------------------------------------------------
 #[derive(Debug)]
 struct Node {
-    next: Option<Rc<RefCell<Node>>>,
+    next: Option<Weak<RefCell<Node>>>,
 }
 
 impl Drop for Node {
@@ -17,27 +17,38 @@ impl Drop for Node {
 
 pub fn main() {
     let a = Rc::new(RefCell::new(Node { next: None }));
-    println!("a count: {:?}", Rc::strong_count(&a));
+    println!("a strong count: {:?}", Rc::strong_count(&a));
+    println!("a weak count: {:?}", Rc::weak_count(&a));
 
-    let b = Rc::new(RefCell::new(Node { next: Some(Rc::clone(&a))}));
-    println!("B is created.\na count: {:?}", Rc::strong_count(&a));
+    let b = Rc::new(RefCell::new(Node { next: Some(Rc::downgrade(&a))}));
+    println!("B is created.\na strong count: {:?}", Rc::strong_count(&a));
+    println!("a weak count: {:?}", Rc::weak_count(&a));
+
     println!("b count: {:?}", Rc::strong_count(&b));
 
-    let c = Rc::new(RefCell::new(Node { next: Some(Rc::clone(&b))}));
-    println!("C is created.\na count: {:?}", Rc::strong_count(&a));
-    println!("b count: {:?}", Rc::strong_count(&b));
-    println!("c count: {:?}", Rc::strong_count(&c));
+    let c = Rc::new(RefCell::new(Node { next: Some(Rc::downgrade(&b))}));
+    println!("C is created.\na strong count: {:?}", Rc::strong_count(&a));
+    println!("b strong count: {:?}", Rc::strong_count(&b));
+    println!("c strong count: {:?}", Rc::strong_count(&c));
+    println!("c weak count: {:?}", Rc::weak_count(&c));
+    println!("b weak count: {:?}", Rc::weak_count(&b));
+    println!("a weak count: {:?}", Rc::weak_count(&a));
 
     // Now let's create a reference cycle
     // c -> b -> a -> c
 
-    (*a).borrow_mut().next = Some(Rc::clone(&c));   // This lines create cycle
-    println!("After creating reference cycle.");
-    println!("a count: {:?}", Rc::strong_count(&a));
-    println!("b count: {:?}", Rc::strong_count(&b));
-    println!("c count: {:?}", Rc::strong_count(&c));
+    // Using weak reference to avoid reference cycle
 
-    // Let's trigger an overflow
-    // println!("a: {:?}", a); // This will trigger a stack overflow
+    (*a).borrow_mut().next = Some(Rc::downgrade(&c));   // This lines create cycle
+    println!("After creating weak reference cycle.");
+    println!("a strong count: {:?}", Rc::strong_count(&a));
+    println!("b strong count: {:?}", Rc::strong_count(&b));
+    println!("c strong count: {:?}", Rc::strong_count(&c));
+    println!("c weak count: {:?}", Rc::weak_count(&c));
+    println!("b weak count: {:?}", Rc::weak_count(&b));
+    println!("a weak count: {:?}", Rc::weak_count(&a));
+
+    // Now following will not cause stack overflow
+    println!("a: {:?}", a); // This will trigger a stack overflow
 
 }
