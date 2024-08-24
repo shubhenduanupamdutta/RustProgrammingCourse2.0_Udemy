@@ -432,3 +432,84 @@ fn main() {
     print_fn(&x);
 }
 ```
+========================================================
+## Unsized Coercion
+========================================================
+- `Unsized Coercion` occurs when a sized type is transformed into an unsized type.
+- This is similar to `Deref Coercion`.
+
+========================================================
+### Refresher on Deref Coercion
+- `Deref Coercion` occurs for automatic conversion of reference of a type to a reference of another type, specifically when using method and functions that expect certain types.
+- `Deref Coercion` occurs when a type gets coerced into another type following a `deref` operation.
+- Let's define a function that takes a string slice as an argument.
+```rust
+fn str_slice_fn(s: &str) {
+    println!("{}", s);
+}
+
+pub fn main () {
+    let some_string = "Calling with String".to_string();
+    str_slice_fn(&some_string);
+}
+```
+- The function `str_slice_fn` only accepts a `&str` type, but we are able to pass a reference to owned `String` type, since it can be coerced into a `&str` type.
+- This is called `Deed of coercion`.
+- In general, `deed of coercion` enables the function to accept any type, including custom defined types, which can be ultimately dereferenced to the expected type.
+
+========================================================
+### Continuing with Unsized Coercion
+========================================================
+- Let's see how `Unsized Coercion` works and is different from `Deref Coercion`.
+- Let's create another function with an input of array slice.
+```rust
+fn array_slice_fn<T>(arr: &[T]) {}
+```
+- This function will accept any input that can be coerced into an array slice.
+- Let's call this function with different types of inputs.
+
+```rust
+fn main() {
+    let slice: &[i32] = &[1];
+    let vec = vec![1];
+    let array = [1, 2, 3];
+
+    array_slice_fn(&vec);
+    array_slice_fn(&array);
+    array_slice_fn(slice);
+}
+```
+- In one of the call `array_slice_fn(slice)` we provided the expected input of array slice.
+- In another call `array_slice_fn(&vec)` we provided a reference to a vector, but it was coerced into an array slice. Since vectors can be coerced into array slices and `Deref Coercion` took place.
+- In the third case `array_slice_fn(&array)` we passed a reference to an array, while the function expects an array slice. In this case `array` which has a known size (3 in this case) is coerced into an array slice which don't have a known size at compile time. So an `Unsized Coercion` took place.
+- Key difference between `Deref Coercion` and `Unsized Coercion` is that in `Deref Coercion` type changes, while in `Unsized Coercion` it is more appropriate to say that the property of the type changes from sized to unsized.
+- Let's look at another example using traits.
+```rust
+trait SomeTrait {
+    fn method(&self);
+}
+
+impl<T> SomeTrait for [T] {
+    fn method(&self) {}
+}
+```
+- In the above code, we have implemented `SomeTrait` for an array slice.
+- But the method of this trait `method` can be called on many different types due to `Deref` and `Unsized` coercion.
+- Let's get into detail for few cases where it can be called,
+    - `Array Slice` any `&[T]` type - Default
+    - `Vec<T>` - Via `Deref Coercion`
+    - `[T; N]` - Via `Unsized Coercion`
+```rust
+fn main() {
+    let slice: &[i32] = &[1];
+    let vec = vec![1];
+    let array = [1, 2, 3];
+
+    slice.method();
+    vec.method(); // Deref Coercion happens
+    array.method(); // Unsized Coercion happens
+}
+```
+- In the above code, `slice.method()` will call the method on the array slice, because it is the default type.
+- `vec.method()` will call the method on the array slice, because `vec` can be coerced into an array slice via `Deref Coercion`.
+- `array.method()` will call the method on the array  slice, because `array` can be coerced into an array slice via `Unsized Coercion`.
