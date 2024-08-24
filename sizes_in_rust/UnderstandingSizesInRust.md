@@ -254,3 +254,69 @@ Size of a reference to a trait object: 16
 - As expected, reference to trait object is `16` bytes, why is this, there is no length data needs to associated with trait objects.
 - In this case the extra 8 bytes will be used to point to the virtual table or `vtable`. `vtable` is a table of function pointers associated with the trait.
 - When a trait object is created rust generates a `vtable` that contains pointers to the actual implementation of the trait methods for the specific types.
+========================================================
+## Sized and Optionally Sized Trait
+========================================================
+- The `Sized` trait in Rust serves as both as `Auto Trait` and `Marker Trait`.
+
+- #### Some Background:
+    - `Auto Trait` - Auto traits are traits which are automatically implemented of a type if certain conditions are met.
+    - `Marker Trait` - Marker traits on the other hand are traits which indicate that the type has certain properties.
+- All `Auto Traits` are `Marker Traits`. Which means we can mention with a type and the compiler will provide automatic default implementation for them.
+- For instance, for an `i32` type, some of the `Auto Traits are` `Copy`, `Clone`, `Default`, `Send`, `Sync`, `Sized` etc. This means I can call function mentioned in these traits on `i32` type without implementing them.
+```rust
+let x: i32 = Default::default();
+println!("Checking default value of i32: {}", x);
+```
+- Since `Default` is an `Auto Trait` for `i32` type, therefore we can call `Default::default()` on `i32` type without implementing it.
+- For `Sized Trait`, its auto implementation occurs when members/fields/variants/items of the type are also sized, i.e. have implemented `Sized` trait.
+- If a type has auto implementation of `Sized` trait, this means that its size in bytes is known at compile time.
+- Its impossible to opt-out of `Sized` trait, unlike some other `Auto Marker Traits`.
+- Let's add `negative-impl` to our dependency.
+```toml
+[dependencies]
+negative-impl = "0.1.6"
+```
+- My current version of Rust is `1.74`.
+- `negative-impl` is a crate which allows us to put restrictions that a specific trait which will not be implemented on a specific type.
+- This means that when we want to opt out of implementation of a specific `Auto Trait` for a specific type, we can use this crate.
+```rust
+use negative_impl::negative_impl;
+
+struct ABC;
+
+#[negative_impl]
+impl !Send for ABC {}
+
+#[negative_impl]
+impl !Sync for ABC {}
+```
+- `Send` trait indicates whether a type can be safely transferred across thread boundaries.
+- `Sync` trait indicates whether references to a type can be safely shared between threads.
+- In above code, we have opted out of `Send` and `Sync` traits for `ABC` type. Since we are not using `Send` and `Sync` traits, we can opt out of them.
+- We can't opt out of `Sized` trait.
+- Its very hard and not logical to imagine a situation where we would want to opt out of `Sized` trait. This brings no advantage.
+- On the other hand, negative implementation of `Send` and `Sync` are very useful, because if we are not going to use a type across threads or in multithreading, these traits are not required.
+- ### By default, `Sized` trait is automatically applied to a bound for every generic type parameter.
+- For instance, if we define a function with a generic type parameter, compiler will actually read it as or (it will be de-sugared to),
+```rust
+fn some_fn<T>(t: T) {}
+```
+```rust
+// De-sugared version (compiler reads it as)
+fn some_fn<T: Sized>(t: T) {}
+```
+- This means by default, type parameters are expected to have a known size at compile time, ensuring memory management and safety.
+- `<T: ?Sized>` - This syntax is used to specify that the type parameter `T` may or may not be `Sized`.
+- It is often used in Trait Bounds to allow the implementation with bot Sized and Unsized types.
+- The advantage of using `?Sized` (also called Optionally Sized) is that it provides flexibility. It allows us to write generic code that allows us to work with types whose size can be known or unknown at compile time.
+- Parameter to a function can't have optional `Sized` trait, in that case only references can be used.
+- Let's consider an example of a function which takes a parameter of type `T` which may or may not be `Sized`.
+```rust
+fn print<T: ?Sized>(t: &T) {
+    println!("{:?}", t);
+}
+```
+- But the code `fn print<T: ?Sized>(t: T) {...}` will not compile, because the size of `T` is not known at compile time.
+- The `?` in this case is commonly known as `Widening Bound` or and `Expanded or Relaxed Bound`, because it relaxed the limitation on the type parameter, instead of restricting it.
+- Special thing about `Optional Sized Bound`, `?Sized` is that, among the bounds in Rust, it is a sole example of relaxed constraint.
