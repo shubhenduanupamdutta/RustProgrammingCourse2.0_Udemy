@@ -320,3 +320,115 @@ fn print<T: ?Sized>(t: &T) {
 - But the code `fn print<T: ?Sized>(t: T) {...}` will not compile, because the size of `T` is not known at compile time.
 - The `?` in this case is commonly known as `Widening Bound` or and `Expanded or Relaxed Bound`, because it relaxed the limitation on the type parameter, instead of restricting it.
 - Special thing about `Optional Sized Bound`, `?Sized` is that, among the bounds in Rust, it is a sole example of relaxed constraint.
+
+========================================================
+## ?Sized and Generic Parameters
+========================================================
+### Use Case 1 of `?Sized` - Creating an Unsized Struct
+- Let's first consider an unsized struct.
+- Unsized Struct is a struct that contains one and only one unsized field.
+- An unsized field will be of unsized type, such as a `Raw Slice` or `Trait Object`.
+```rust
+struct UnSizedStruct {
+    sized_field_1: i32,
+    unsized_field: [i32],
+}
+```
+- To keep in mind to create an Unsized Struct, we need to fulfill two conditions:
+    - It must have at one unsized field, and
+    - The unsized field should be the last field in the struct.
+- The above struct field fulfills the two requirements.
+- If we try to add another field after the unsized field, the compiler will throw an error.
+- These two requirements are related to Rust memory management and safety features. Rust needs to know the sizes of the fields in a struct at compile time, to correctly calculate the memory offsets, and do necessary allocations required to store and instance of the struct.
+- In this case, the unsized field, whose size is not known at compile time, prevents scenarios where it might be unclear how much memory should be allocated for an instance of a struct.
+- So when we define the struct, rust allows the struct to be defined, but it will not allow us to create an instance of the struct.
+```rust
+fn main() {
+    let x = UnSizedStruct {
+        sized_field_1: 3,
+        unsized_field: [1, 2, 3],
+    }
+}
+```
+- This will throw compiler error,
+```shell
+the size for values of type `[i32]` cannot be known at compilation time
+within `UnSizedStruct`, the trait `Sized` is not implemented for `[i32]`, which is required by `UnSizedStruct: Sized`
+structs must have a statically known size to be initialized
+```
+- Why does the compiler throw an error?
+- The reason for the error in this case is that every type gets the `Sized` trait as an `Auto Trait` which can't be opted out, and when compiler tries to auto calculate `Sized` trait for `UnSizedStruct`, it can't calculate the size of the unsized field `[i32]`.
+- We can use optionally sized trait, `?Sized` to allow the struct to have an unsized field.
+```rust
+struct UnSizedStruct<T: ?Sized> {
+    sized_field_1: i32,
+    unsized_field: T,
+}
+```
+- Now we can create an instance of the struct.
+```rust
+fn main() {
+    let x = UnSizedStruct {
+        sized_field_1: 3,
+        unsized_field: [1, 2, 3],
+    }
+}
+```
+### Use Case 2 of `?Sized` - 
+- Let's consider a print function with a generic parameter `T` with a `Debug` trait bound.
+```rust
+fn print_fn<T: Debug> (t: T) {
+    println!("{:?}", t);
+}
+```
+- Above function will be de-sugared to,
+```rust
+fn print_fn<T: Debug + Sized> (t: T) {
+    println!("{:?}", t);
+}
+```
+- Because generic parameters are auto bounded to `Sized` trait, we can't pass unsized types to the function.
+- Now let's call this function
+```rust
+fn main() {
+    let x: &str = "My name is Heisenberg";
+    print_fn(x);
+}
+```
+- Above code will compile and run successfully.
+- But the current `print_fn` assumes ownership of any value passed to it, which can be somewhat inconvenient if we pass on non copy types, that is, heap allocated types.
+- If we modify the function to only accept references, then the code will not compile, even though we are passing a reference to the slice `&str`.
+```rust
+fn print_fn<T: Debug> (t: &T) {
+    println!("{:?}", t);
+}
+```
+- Why is this?
+- This is because when we pass `&str` to the function, basically we are saying, `T` will be resolved to Raw String Slice `str`, not the reference, and there is no `Sized` trait for `str`, only for `&str`.
+- This is because de-sugared version of the function is `fn print_fn<T: Debug + Sized> (t: &T) {...}`.
+- In this case, error will go away, if we add another `&` when passing to the function.
+```rust
+fn main() {
+    let x: &str = "My name is Heisenberg";
+    print_fn(&x);
+}
+```
+========================================================
+
+| Parameter Type    |    `T`     |   `&T`     |   `&T`     |
+|-------------------|------------|------------|------------|
+|Function Call Input|   `&str`   |   `&str`   |   `&&str`   |
+|Resolves to        | `T = &str` | `T = str`  | `T = &str`  |
+- Working with references like this `&&str` is very inconvenient and always remembering the correct conversion is hard to manage and error prone.
+- We can use `?Sized` traits in this situation, now we can pass both `&str` and `str` to the function, without worrying about how `T` will be resolved.
+```rust
+fn print_fn<T: Debug + ?Sized> (t: &T) {
+    println!("{:?}", t);
+}
+
+fn main() {
+    let x: &str = "My name is Heisenberg";
+    print_fn(x);
+    print_fn(&x);
+}
+```
