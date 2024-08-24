@@ -160,3 +160,97 @@ trait Shape {
 println!("Size of &dyn Shape: {}", size_of::<&dyn Shape>());
 ```
 - Any complex types like enums, structs made of unsized types are also unsized.
+
+========================================================
+## Pointers to Sized and Unsized Types
+========================================================
+```rust
+use std::mem::size_of;
+
+pub fn main() {
+    println!("Size of a reference or sized type: {}", size_of::<&[i32, 3]>());
+    println!("Size of a reference to an unsized type: {}", size_of::<&[i32]>());
+}
+```
+- Let's consider above code, `&[i32, 3]` is a reference to an array of size `3`, which is a sized type, so its size is known at compile time.
+- `&[i32]` is a reference to an array slice. Array slice is an unsized type, so its size is not known at compile time.
+- Let's check the output of above code.
+```shell
+Size of a reference or sized type: 8
+Size of a reference to an unsized type: 16
+```
+- Why is reference to an unsized type is `16` bytes?
+- Simple reference to sized types are one Machine Word (i.e. 8 bytes in 64-bit systems), but reference to unsized types are two Machine Words (i.e. 16 bytes in 64-bit systems).
+- Why is this so?
+- Let's define an array containing 3 elements,
+```rust
+let num_1: &[i32; 3] = &[1, 2, 3];
+let num_2: &[i32] = &[1, 2, 3];
+```
+- In the first case, data length information is embedded in the type information itself. There for size information is not required to be stored again.
+- But in second case, data length information is not attached to the type itself, therefore pointer needs to have some additional information (which may be mutable). That added information about size of data type is stored in next Machine Word size.
+- Reference which are two machine word are referred to as `Fat Pointers`.
+- References which are only one machine word are referred to as `Thin Pointers`.
+- To confirm, that the size information is stored in the pointer itself in second case, we can iterate through the two data.
+```rust
+let num_1: &[i32; 3] = &[1, 2, 3];
+let num_2: &[i32] = &[1, 2, 3];
+
+let mut sum_1 = 0;
+for num in num_1 {
+    sum_1 += num;
+}
+
+println!("Sum of the array num_1: {}", sum_1);
+
+let mut sum_2 = 0;
+for num in num_2 {
+    sum_2 += num;
+}
+println!("Sum of the slice num_2: {}", sum_2);
+```
+- We expect the second loop to throw an error, because size data is not explicitly stated anywhere, but it will compile and run successfully.
+- Because size data is stored in the pointer itself, making the pointer a `Fat Pointer`.
+- References to trait objects are also two machine words in size, because size information is stored in the pointer itself.
+```rust
+
+use std::mem::size_of;
+
+trait Shape {
+    fn print(&self);
+}
+
+#[derive(Debug)]
+struct Circle;
+
+#[derive(Debug)]
+struct Rectangle;
+
+impl Shape for Circle {
+    fn print(&self) {
+        println!("{:?}", self);
+    }
+}
+
+impl Shape for Rectangle {
+    fn print(&self) {
+        println!("{:?}", self);
+    }
+}
+
+fn main() {
+    println!();
+    println!("Size of reference to Circle: {}", size_of::<&Circle>());
+    println!("Size of reference to Rectangle: {}", size_of::<&Rectangle>());
+    println!("Size of a reference to a trait object: {}", size_of::<&dyn Shape>());
+}
+```
+- Let's check the output of above code.
+```shell
+Size of reference to Circle: 8
+Size of reference to Rectangle: 8
+Size of a reference to a trait object: 16
+```
+- As expected, reference to trait object is `16` bytes, why is this, there is no length data needs to associated with trait objects.
+- In this case the extra 8 bytes will be used to point to the virtual table or `vtable`. `vtable` is a table of function pointers associated with the trait.
+- When a trait object is created rust generates a `vtable` that contains pointers to the actual implementation of the trait methods for the specific types.
