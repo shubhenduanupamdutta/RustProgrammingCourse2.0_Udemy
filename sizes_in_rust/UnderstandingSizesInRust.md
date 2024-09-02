@@ -598,3 +598,78 @@ fn function_2() -> Result<i32, NeverType> {}
 ```
 - In this case, `NeverType` is a custom defined type which will never be instantiated, so it can be used to represent a never type, in case of returning a `Result` type.
 - However our custom defined never type will not have the same properties as the never type, like being able to be coerced into any type.
+
+========================================================
+### Unit Type
+========================================================
+- The unit type represents a lack of meaningful data or information.
+- It is denoted by `()`, parentheses with nothing inside.
+- It has one and only one value, called `Unit Value` also denoted by `()`.
+- Unit values are useful when we have some piece of code that does something, but do not return anything.
+- Let's look at some scenarios,
+```rust
+fn f1() {}
+
+fn main() {
+    y = f1();
+}
+```
+- Functions that do not return anything explicitly, returns a unit value.
+- In the above case variable `y` stores the returning unit value.
+- More precisely function can be `de-sugared` to,
+```rust
+fn f1() -> () {}
+```
+- In many cases, we are interested in knowing if the function has successfully done some processing or it failed for any reason. In the case of success we are not interested in the result.
+- For instance, consider a division function which will return a result.
+```rust
+fn division_status(dividend: f64, divisor: f64) -> Result<(), String> {
+    let answer = match divisor {
+        0.0 => return Err("Division by zero".to_string()),
+        _ => {
+            println!("The division is invalid");
+            Ok(())
+        }
+    };
+    answer
+}
+```
+- Above function, returns a unit in case of success, error otherwise. 
+- This depicts, a nice use case of the unit value, which together with the result, can be used to check if the status of some operation is successful or not.
+- **All the statements return a unit value, except the last statement in the function.**
+```rust
+let z: () = println!("Hello, World!");
+```
+- **Vector with zero capacity are treated as vector of units.**
+```rust
+let mut _vec: Vec<()> = Vec::with_capacity(0);
+_vec.push(());
+_vec.push(());
+_vec.push(());
+println!("{:?}", _vec);
+
+println!("Length of _vec: Vec<()> after three pushes: {}", _vec.len());
+assert_eq!(_vec.len(), 3);
+
+println!("Capacity of _vec: Vec<()> after three pushes: {}", _vec.capacity());
+
+```
+```shell
+[(), (), ()]
+Length of _vec: Vec<()> after three pushes: 3
+Capacity of _vec: Vec<()> after three pushes: 18446744073709551615
+```
+- The compiler recognizes that the unit type has no size and optimizes its interactions with instances of the unit type.
+- Therefore, pushing of unit values will only update the length of the vector and will not lead to any heap allocation or change in the capacity of the vector.
+- We just said compiler will not change the capacity of the vector, then why we are getting the capacity as `18446744073709551615`?
+- The compiler sets the capacity to be highest possible value, `u64::MAX` in this case.
+- Whenever the length of the vector exceeds it allocated capacity, the capacity is increased by pinging the allocator and new allocation takes place.
+- Since the zero sized types doesn't take any memory, therefore we shouldn't be pinging the allocator at all.
+- In order to rule out the possibility of pinging the allocator, it has been allocated the highest possible value that a vector can take.
+- #### IMPORTANT NOTE: It is very important to take note of the distinction between a unit type and never type.
+|Sr.|         Never Type                |         Unit Type                |
+|--|-----------------------------------|----------------------------------|
+|1.| Represents computation that never produces a value | Represents a computation with no meaningful value. |
+|2.| The Functions which return never type are guaranteed to never return normally | Functions that return unit type are guaranteed to return normally. |
+|3.| Never type has no associated value and can be coerced into all other types | Unit type has single value, `()` and can not be coerced into any other type. |
+
