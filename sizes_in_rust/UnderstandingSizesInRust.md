@@ -513,3 +513,88 @@ fn main() {
 - In the above code, `slice.method()` will call the method on the array slice, because it is the default type.
 - `vec.method()` will call the method on the array slice, because `vec` can be coerced into an array slice via `Deref Coercion`.
 - `array.method()` will call the method on the array  slice, because `array` can be coerced into an array slice via `Unsized Coercion`.
+--------------------------------------------------------
+## Zero Sized Types
+--------------------------------------------------------
+- There are many `zero sized types` in rust, each having different use cases.
+
+========================================================
+### Never Type
+========================================================
+- `Never Type` represents computation that never resolves to any value. In other words, it corresponds to a computation that will always panic or exit the program, i.e. never finishes.
+- `Never Type` is currently only available in Nightly Version of Rust.
+- `Never Type` was supposed to be stabilized in Rust 1.41 but it was postponed.
+- `Never Type` is represented by `!` symbol.
+- **Currently only available in Nightly Version of Rust.**
+```rust
+#![feature(never_type)]
+
+fn unrecoverable_state() -> ! {
+    panic!("This is an unrecoverable state");
+}
+
+fn main() {
+    unrecoverable_state();
+}
+```
+- Functions returning `never type` are called `diverging functions`.
+- They can only panic, exit the program or loop forever.
+- `Never Type` is used when a function is guaranteed to never return normally.
+- `Never Type` can not be assigned to a variable.
+- Assignment of a function, returning never type is currently not a compile time error.
+- We can create variable of never types using a function to return never type.
+```rust
+#![feature(never_type)]
+
+fn unrecoverable_state() -> ! {
+    panic!("This is an unrecoverable state");
+}
+
+fn main() {
+    let x: ! = unrecoverable_state();
+}
+```
+- `Never Type` can be used in match arms that are guaranteed to never be reached.
+```rust
+#![feature(never_type)]
+
+let x = match "123".parse::<i32>() {
+    Ok(num: i32) => num,
+    Err(_) => panic!(),
+}
+```
+- This code will compile and work, because `never type` can be coerced into any type.
+- `return` also returns `never type` so can be coerced into any type.
+- `break` and `continue` also return `never type`.
+```rust
+fn main() {
+    let x: String = return;
+    
+    let result = loop {
+        counter += 1;
+        if counter == 10 {
+            break;
+        }
+    }
+}
+```
+- Due to back compatibility, `!` is not yet stabilized, but it is expected to be stabilized in future versions of Rust. So returning from loop it returns `()` type.
+- Whereas in docs it is mentioned that `break` and `continue` return `!` type.
+- `!` is a subtype of all types, so it can be coerced into any type.
+- Another use case of never type is that it can be used to permit us to designate particular states as unreachable at type level.
+- Consider a function which returns a result.
+```rust
+
+fn function() -> Result<i32, String> {}
+
+fn function_1() -> Result<i32, !> {}
+```
+- With `function_1` signature we can confidently say that it will never return an error. This is because instantiating a `Result` with `!` type will never be possible.
+- Alternative to simulate the behavior of the never type on the stable version is to use our own custom defined never types.
+```rust
+enum NeverType {}
+
+fn function_2() -> Result<i32, NeverType> {}
+```
+- In this case, `NeverType` is a custom defined type which will never be instantiated, so it can be used to represent a never type, in case of returning a `Result` type.
+- However our custom defined never type will not have the same properties as the never type, like being able to be coerced into any type.

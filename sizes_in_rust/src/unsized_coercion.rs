@@ -2,8 +2,6 @@
 //      Unsized Coercion in Rust
 //----------------------------------------------
 
-use std::any::type_name;
-
 fn str_slice_fn(s: &str) {
     println!("{}", s);
 }
