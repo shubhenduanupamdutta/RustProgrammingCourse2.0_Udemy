@@ -673,3 +673,71 @@ Capacity of _vec: Vec<()> after three pushes: 18446744073709551615
 |2.| The Functions which return never type are guaranteed to never return normally | Functions that return unit type are guaranteed to return normally. |
 |3.| Never type has no associated value and can be coerced into all other types | Unit type has single value, `()` and can not be coerced into any other type. |
 
+========================================================
+### Unit Struct
+========================================================
+- #### A unit struct is a struct with no fields due to absence of associated fields, it has zero size.
+- Unit structs can be used as marker types, for marking types to ensure certain concept or properties.
+- Let us go over a example.
+- We would like to have different login methods being invoked based on the role being set to admin or user.
+- We will defined two marker types of admin and user which represents roles in a login system.
+```rust
+struct Admin;
+
+struct User;
+
+trait Authenticate {
+    fn authenticate(&self, username: &str, password: &str) -> bool;
+}
+
+impl Authenticate for Admin {
+    fn authenticate(&self, username: &str, password: &str) -> bool {
+        username == "admin" && password == "adminpass"
+    }
+}
+
+
+impl Authenticate for User {
+    fn authenticate(&self, username: &str, password: &str) -> bool {
+        username == "user" && password == "userpass"
+    }
+}
+
+fn login<T: Authenticate>(role: T, username: &str, password: &str) -> bool {
+    role.authenticate(username, password)
+}
+
+pub fn main() {
+    let admin = Admin;
+    let user = User;
+
+    let admin_login = login(admin, "admin", "adminpass");
+    let user_login = login(user, "user", "userpass");
+
+    println!("Admin login status, logged_in?: {}", admin_login);
+    println!("User login status, logged_in?: {}", user_login);
+}
+```
+- The example demonstrates how marker types can be used to differentiate roles and behaviors within a simple login authentication system.
+- There are many other useful use cases of the unit structs.
+- Compared to other unit sized types, Unit Structs are not copy by default.
+- In general, all structs are not copy by default, i.e. they are moved through ownership change, when assigned to a variable and not copied.
+- Consider a unit variable, `x`, it can be copied many times.
+```rust
+let x = ();
+let y = x;
+let z = x;
+```
+- Now consider the unit struct variable, `x`, it can't be copied.
+```rust
+struct ABC;
+
+let x = ABC;
+let y = x;
+let z = y;  // This line will throw compiler error
+```
+- The reason for this is that, the unit struct is not copy by default, and it is moved through ownership change, when assigned to a variable and not copied.
+- This behavior is important in situations where you want to enforce strict ownership and prevent accidental data duplication.
+- Let's say in the use case of being marker types, they may be used to enforce different behaviors based on their presence or absence in a function signature.
+- If they were copyable, it could lead to unexpected behavior and unintended sharing of traits or marker information.
+- For instance, in previous example, suppose we want to have single admin, but if the admin is copyable, we would unexpectedly create two admins, which may violate the requirement  of having a single admin of the system.
