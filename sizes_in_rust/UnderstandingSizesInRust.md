@@ -741,3 +741,67 @@ let z = y;  // This line will throw compiler error
 - Let's say in the use case of being marker types, they may be used to enforce different behaviors based on their presence or absence in a function signature.
 - If they were copyable, it could lead to unexpected behavior and unintended sharing of traits or marker information.
 - For instance, in previous example, suppose we want to have single admin, but if the admin is copyable, we would unexpectedly create two admins, which may violate the requirement  of having a single admin of the system.
+
+========================================================
+### Phantom Data
+========================================================
+- `Phantom Data` is a marker struct with zero size.
+- It helps in expressing the relationship and constraints between types without introducing any runtime overhead.
+- Consider following struct,
+```rust
+struct ABC;
+```
+- If we want to opt out of the auto marker traits of `send` and `sync` for this struct.
+- One approach was to use `negative-impl` crate and opt out of these traits.
+- Use of `negative-impl` has drawbacks, it will depend on an external crate, which means that we will be bringing the crate into scope, which is associate with extra overhead.
+- **Let's see another approach**
+- A type has `send` and `sync` as `Auto-Trait` if all of its fields/members are also have `send` and `sync` as `Auto-Trait`, or as defined by the user.
+- If we introduce a field, which doesn't have `send` and `sync` as `Auto-Trait`, then the type will not have `send` and `sync` as `Auto-Trait`.
+- Luckily we have such a type, `Rc` smart pointer, which doesn't have `send` and `sync` as `Auto-Trait`.
+- We can use `Rc` smart pointer to introduce a field in our struct, which doesn't have `send` and `sync` as `Auto-Trait`.
+- Let's see how we can do this.
+```rust
+use std::rc::Rc;
+
+struct ABC {
+    ensuring_no_send_sync: Rc<()>,
+}
+```
+- But again this approach is also not ideal, because it increases the size of every struct instance and introduces the need to create an `Rc` smart pointer whenever an instance of struct is created.
+- Let's see size of the struct in cargo run
+```rust
+use std::rc::Rc;
+
+struct A;
+
+struct ABC {
+    _ensuring_no_send_sync: Rc<()>,
+}
+
+pub fn main() {
+    println!("Size of Unit Struct A: {}", std::mem::size_of::<A>());
+
+    println!("Size of Struct ABC: {}", std::mem::size_of::<ABC>());
+}
+```
+```shell
+Size of Unit Struct A: 0
+Size of Struct ABC: 8
+```
+- The size of struct `ABC` which doesn't implement `send` and `sync` has increased to `8` bytes, from `0` bytes.
+- #### Phantom data can be used to solve this problem.
+- Instead of defining the field to be a simple `Rc`, we change its type to that of a phantom data wrapping an `Rc` type.
+- Let's see how we can do this.
+```rust
+use std::marker::PhantomData;
+use std::rc::Rc;
+
+struct ABC {
+    ensuring_no_send_sync: PhantomData<Rc<()>>,
+}
+```
+- Since `PhantomData` has zero size, therefore the size will remain as `0` and will maintain the constraints of not implementing `send` and `sync` as `Auto-Trait`.
+- Adding a phantom data field to your type tells the compiler that your type acts as though it stores a value of certain type, even though it doesn't really.
+- This is super helpful in ensuring certain property of the type, without introducing any runtime overhead.
+- It's a zero sized type used for compile time type checking and optimizations, so it doesn't impact runtime performance.
+--------------------------------------------------------

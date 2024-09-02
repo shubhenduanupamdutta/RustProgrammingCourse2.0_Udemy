@@ -5,6 +5,7 @@
 pub mod never_type;
 pub mod unit_type;
 pub mod unit_struct;
+pub mod phantom_data;
 
 pub fn main() {
     println!();
@@ -18,4 +19,8 @@ pub fn main() {
     println!();
     println!("========= Unit Struct =========");
     unit_struct::main();
+
+    println!();
+    println!("========= Phantom Data =========");
+    phantom_data::main();
 }
