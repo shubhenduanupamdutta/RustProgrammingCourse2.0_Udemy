@@ -2,12 +2,15 @@
 //           Concurrency
 //--------------------------------------------------------------------
 
-use concurrency::threads_basics;
+use concurrency::{basics_practice, threads_basics};
 
 
 fn main() {
     println!("########### Concurrency ###########");
     println!();
     println!("############ Basics of Threads ############");
-    threads_basics::main();    
+    threads_basics::main();
+    println!();
+    println!("############ Practice of Threads Basics ############");
+    basics_practice::main();
 }
