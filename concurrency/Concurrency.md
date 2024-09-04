@@ -273,3 +273,69 @@ Hello 7 from the thread.
 - **Concurrency** is about multiple tasks which start, run and complete in overlapping time periods, in no specific order.
 - **Parallelism** is about doing multiple tasks that  run simultaneously, i.e. literally at the same time, on a hardware with multiple computing resources, like multiple CPUs or cores.
 - From programming perspective, we are interested in **concurrency**, but in hardware perspective, we are interested in **parallelism**.
+---------------------------------------------------------
+## Ownership in Threads
+---------------------------------------------------------
+```rust
+use std::thread;
+
+pub fn main() {
+    let x = "some string".to_string();
+
+    thread::spawn(|| {
+        println!("{}", x);
+    });
+}
+```
+- Spawning the thread, and accessing `x` inside the closure will give an error.
+- Error - `closure may outlive the current function, but it borrows 'x', which is owned by the current function`
+- `println!("{}", x);` is executed in a spawned thread. The closure is not updating `x`, so rust  will infer that inside the closure it will be used immutably. (Closure uses the variables in the environment with least possible permissions).
+- We already know, that thread execution is non-deterministic and controlled by OS. Rust therefore, can't tell how long the spawned thread will live.
+- Spawned thread, may live longer than the main thread, that will lead to a problem, because this closure borrows `x` immutably.
+- At the end of the main thread, `x` will be dropped, but the spawned thread may still be running, and it will try to access `x`, which is already dropped. Which will lead to a dangling reference.
+- To fix this, we can move `x` into the closure, so that the spawned thread takes ownership of `x`.
+```rust
+use std::thread;
+
+pub fn main() {
+    let x = "some string".to_string();
+
+    thread::spawn(move || {
+        println!("{}", x);
+    });
+}
+```
+- Now, the closure takes ownership of `x`, and the error is resolved.
+- But since thread will take ownership to `x`, we can't use `x` after the `thread::spawn` call.
+- If we try to use `x` after the `thread::spawn` call, we will get an error.
+```rust
+use std::thread;
+
+pub fn main() {
+    let x = "some string".to_string();
+
+    thread::spawn(move || {
+        println!("{}", x);
+    });
+
+    println!("{}", x);
+}
+```
+- Error - `value used here after move`
+- But if `x` value is a primitive, then this error will not occur, because primitive types implement `Copy` trait, and they are copied instead of moved.
+- `move` keyword will not be required if the closure is implementing `FnOnce` trait, because `FnOnce` trait consumes the variables it captures by taking ownership of them.
+```rust
+use std::thread;
+
+fn main() {
+    let x = "some string".to_string();
+
+    thread::spawn(|| {
+        let y = x;
+        println!("{}", y);
+    });
+}
+```
+- Above code will also compile, because, in this case closure is taking ownership of `x`, i.e. it is implementing `FnOnce` trait.
+- #### In summary, threads in Rust are isolated from each other automatically due to ownership rules. This ensures that data races will never occur in Rust.
+---------------------------------------------------------
