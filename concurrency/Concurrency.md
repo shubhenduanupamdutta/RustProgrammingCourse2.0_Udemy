@@ -339,3 +339,297 @@ fn main() {
 - Above code will also compile, because, in this case closure is taking ownership of `x`, i.e. it is implementing `FnOnce` trait.
 - #### In summary, threads in Rust are isolated from each other automatically due to ownership rules. This ensures that data races will never occur in Rust.
 ---------------------------------------------------------
+## Message Passing Through Channels
+---------------------------------------------------------
+- In the previous part, we learned that rust ownership system isolates the threads from each other.
+- **But sometimes, we needs some mechanism to communicate between threads to solve some complex problems.**
+- #### There are two strategies to communicate between threads:
+    - **Shared State Concurrency**
+    - **Message Passing Concurrency**
+
+- We will discuss the **Message Passing Concurrency** in this part.
+- ### Rust achieves message passing using the concept of channels.
+=========================================================
+### Basics of Channels
+=========================================================
+- We will use an analogy of a water stream to understand the basics of channels. Assume with water stream we are talking about a river or a stream.
+- If you put something like a boat on the stream, it will travel down the stream to end of the waterway.
+- **A channel has two ends, a sender and a receiver. Also called as transmitter and receiver.**
+- Going back to the river analogy, the transmitter is the upstream location where you would place the boat, and the receiver is the downstream location where the boat will end up and will be received.
+- **Rust provides implementation of channels in its `std::sync::mpsc` module.**
+- `mpsc` stands for multiple producer, single consumer.
+- As the name suggests, this allows us to have multiple senders, but only one receiver.
+- Let's create a channel,
+```rust
+use std::sync::mpsc;
+
+fn main() {
+    let (tx, rx) = mpsc::channel();
+}
+```
+- `mpsc::channel()` function returns a tuple, where the first element is the transmitter and the second element is the receiver.
+- `tx` is the transmitter, and `rx` is the receiver. These are traditional names used in the literature.
+- Now, one part of our case will call methods on the transmitter, passing in the data we want to send, and another part of our code is listening to the receiver for arriving messages.
+- **Channels are closed when either the transmitter or receiver is dropped.**
+- Let's create a thread, which will send a message to the main thread.
+```rust
+use std::{sync::mpsc, thread};
+
+pub fn main() {
+    let (tx, rx) = mpsc::channel(); // tx is the transmitter and rx is the receiver
+    thread::spawn(move || {
+        let i = "Shubhendu".to_string();
+        println!("Sending value {i} through the channel");
+        tx.send(i).unwrap();
+    });
+}
+```
+- In the above code, we are sending a string through the channel.
+- First we created a string `i`, that we want to send through the channel.
+- `.send()` method on the transmitter `tx` will allow us to send out a value.
+- `move` is necessary because we need ownership of `tx` inside the closure, to send out messages through the channel.
+- `.send()` return a `Result`, `Ok` when the message is sent successfully, and `Err` when there is an error, most likely when the receiver is dropped, and there is nowhere to send the message.
+- We are using `unwrap()` to panic if there is an error, but in a real program, you should handle the error gracefully.
+- Now, we need to receive the message in the main thread.
+```rust
+//<--------- **** snip **** -----------> original code
+// Receiver part
+let received_val = rx.recv().unwrap();
+println!("Received value: {received_val}");
+```
+- `.recv()` called **receive** allows for receiving a message from the channel.
+- This method `.recv()` blocks the thread which calls it, until a message is received.
+- `.recv()` also returns a `Result`, `Ok` when a message is received, and `Err` when the transmitter is dropped before sending out a useful message.
+- We are using `unwrap()` to panic if there is an error, but in a real program, you should handle the error gracefully.
+- **Once a value is being sent out by the thread, it is no more available and its ownership is no more with the sender.**
+- **There are no issues with stack data, since they are not moved but copied.**
+- **We can have multiple threads sending out messages through the same channel.**
+- Let's create multiple thread using a loop,
+```rust
+use std::{sync::mpsc, thread};
+
+for i in 0..5 {
+    thread::spawn(move || {
+        let (tx, rx) = mpsc::channel();
+        tx.send(i).unwrap();
+    });
+}
+```
+- This code will not compile, because we have moved `tx` into the closure, in the first iteration. And therefore it is not available in the next iteration, for the next thread.
+- To make sure that the other threads are able to send out messages using the sender, we will pass on a clone of the sender, `tx` to each thread.
+```rust
+use std::{sync::mpsc, thread};
+fn main() {
+    let (tx1, rx1) = mpsc::channel();
+
+    for i in 0..10 {
+        let tx_clone = tx1.clone();
+        thread::spawn(move || {
+            println!("Sending value: {}", i);
+            tx_clone.send(i).unwrap();
+        });
+    }
+
+    let received_val = rx1.recv().unwrap();
+    println!("Received value: {}", received_val);
+}
+```
+- In the above code, we are cloning the transmitter `tx1` and passing the clone to each thread.
+- Now, each thread has its own transmitter, and they can send out messages through the channel.
+- **But when we run the above code, output is not as expected.**
+```shell
+Sending value: 0
+Sending value: 1
+Sending value: 2
+Sending value: 3
+Sending value: 4
+Sending value: 5
+Sending value: 6
+Sending value: 7
+Sending value: 8
+Received value: 0
+Sending value: 9
+thread '<unnamed>' panicked at src\messaging_through_channels.rs:25:30:
+called `Result::unwrap()` on an `Err` value: SendError { .. }
+```
+- This is because the call to `.recv()` only receives a single message, and then the main thread exits.
+- **Let's try to receive second time.**
+```rust
+use std::{sync::mpsc, thread};
+fn main() {
+    let (tx1, rx1) = mpsc::channel();
+
+    for i in 0..10 {
+        let tx_clone = tx1.clone();
+        thread::spawn(move || {
+            println!("Sending value: {}", i);
+            tx_clone.send(i).unwrap();
+        });
+    }
+
+    let received_val = rx1.recv().unwrap();
+    println!("Received value: {}", received_val);
+
+    let received_val = rx1.recv().unwrap();
+    println!("Received value: {}", received_val);
+}
+```
+- Another thing to note is that the channels works like a `queue` which follows **first in first out (FIFO)** order.
+- Sender or transmitter, may send messages in any order, but the receiver will always receive messages in the order they were sent.
+- **To properly receive all the messages, we can treat receiver as an iterator.**
+```rust
+for received_val in rx1 {
+    println!("Received value: {}", received_val);
+}
+```
+- In this case, the main thread will be blocked until new messages become available.
+- **When all the transmitters are dropped, and thus channel is closed, the receiver will return `None` and the loop will exit.**
+- But in the above code, the output is,
+```shell
+Sending value: 0
+Sending value: 1
+Sending value: 2
+Sending value: 3
+Sending value: 4
+Sending value: 5
+Sending value: 6
+Sending value: 7
+Sending value: 8
+Received value: 0
+Received value: 1
+Sending value: 9
+Received value: 2
+Received value: 3
+Received value: 4
+Received value: 5
+Received value: 6
+Received value: 7
+Received value: 8
+Received value: 9
+```
+- **And the program is not stopping, it continues to run.**
+- Receiver end of the channel will stop listening for new messages, when all the transmitters are dropped.
+- During each iteration, we are creating a clone of the transmitter, and moving it inside a thread, and then dropping it at the end of the iteration, when the thread completes its execution.
+- However, when all the threads in `for` loop are completed, the original transmitter `tx1` still remains, because it is not consumed by any thread.
+- To make sure that the original transmitter `tx1` is also dropped, we can drop it explicitly after the `for` loop.
+```rust
+use std::{sync::mpsc, thread};
+
+pub fn main() {
+    let (tx, rx) = mpsc::channel(); // tx is the transmitter and rx is the receiver
+    thread::spawn(move || {
+        let i = "Shubhendu".to_string();
+        println!("Sending value {i} through the channel");
+        tx.send(i).unwrap();
+    });
+
+    let received = rx.recv().unwrap();
+    println!("Received value: {}", received);
+
+    println!();
+    println!("======= Multiple Transmitters and Single Receiver =======");
+    let (tx1, rx1) = mpsc::channel();
+
+    for i in 0..10 {
+        let tx_clone = tx1.clone();
+        thread::spawn(move || {
+            println!("Sending value: {}", i);
+            tx_clone.send(i).unwrap();
+        });
+    }
+
+    drop(tx1); // This is necessary to drop the transmitter so that the receiver can stop waiting for more values
+    // let received_val = rx1.recv().unwrap();
+    // println!("Received value: {}", received_val);
+
+    // let received_val = rx1.recv().unwrap();
+    // println!("Received value: {}", received_val);
+
+    for received_val in rx1 {
+        println!("Received value: {}", received_val);
+    }
+}
+```
+- Now, the program will stop after all the messages are received.
+- #### Unlike transmitter, we can't clone the receiver.
+=========================================================
+- Let's look at a code,
+```rust
+fn another_example() {
+    let (tx, rx) = mpsc::channel();
+
+    thread::spawn(move || {
+        let x = "Shubhendu".to_string();
+        println!("Sending value: {}", x);
+        tx.send(x).unwrap();
+    });
+
+    let received = rx.recv().unwrap();
+}
+```
+- In the above code, we are creating a thread where we are sending out a value to main through a channel.
+- Call to `.recv()` will block the main thread until a message is received.
+- To clearly see this in action, we can add a dealy in spawned thread of 5 seconds.
+```rust
+fn another_example() {
+    let (tx, rx) = mpsc::channel();
+
+    thread::spawn(move || {
+        let x = "Shubhendu".to_string();
+        println!("Sending value: {}", x);
+        thread::sleep(Duration::from_secs(5));
+        tx.send(x).unwrap();
+    });
+
+    let received = rx.recv().unwrap();
+    println!("Received value: {}", received);
+}
+```
+- In the above code, the main thread will be blocked for 5 seconds, until the spawned thread sends out a message.
+- We can see that last print statement is blocked till `rx.recv()` receives a message. 
+- **This is not very efficient, specially in cases where the time may be substantial, and the remaining code is not dependent on the received message.**
+- Rust provides a non-blocking way to receive messages, using the `try_recv` method.
+- `try_recv` method will return immediately, with a `Result` value, `Ok` when a message is received, and `Err` when no message is available.
+- We could write a loop that calls try, receive after some intervals, handles a message if one is available, and otherwise does other work for a little while before checking again.
+```rust
+fn another_example() {
+    let (tx, rx) = mpsc::channel();
+
+    thread::spawn(move || {
+        let x = "Shubhendu".to_string();
+        println!("Sending value: {}", x);
+        // thread::sleep(Duration::from_secs(5));
+        tx.send(x).unwrap();
+    });
+
+    // let received = rx.recv().unwrap();
+    // println!("Received value: {}", received);
+
+    let mut received_status = false;
+    while !received_status {
+        match rx.try_recv() {
+            Ok(received) => {
+                println!("Received value: {}", received);
+                received_status = true;
+            }
+            Err(_) => {
+                println!("No value received yet");
+                println!("Doing some other work...");
+                thread::sleep(Duration::from_secs(2));
+            }
+        }
+    }
+}
+```
+- In this case, output was,
+```shell
+No value received yet
+Doing some other work...
+Sending value: Shubhendu
+Received value: Shubhendu
+```
+- Now our code is able to do other stuff, until a message is received.
+- #### You need to carefully inspect the code part that we want to execute, while waiting for the messages. It must not depend on the received messages from the thread, and in general doesn't depends on the result produced by the thread.
+---------------------------------------------------------
+## Shared State Concurrency
+---------------------------------------------------------

@@ -2,7 +2,7 @@
 //           Concurrency
 //--------------------------------------------------------------------
 
-use concurrency::{basics_practice, ownership_in_threads, threads_basics};
+use concurrency::{basics_practice, messaging_through_channels, ownership_in_threads, threads_basics};
 
 
 fn main() {
@@ -17,4 +17,8 @@ fn main() {
     println!();
     println!("############ Ownership in Threads ############");
     ownership_in_threads::main();
+
+    println!();
+    println!("############ Message Passing Through Channels ############");
+    messaging_through_channels::main();
 }
