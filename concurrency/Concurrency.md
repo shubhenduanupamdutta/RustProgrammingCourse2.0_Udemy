@@ -633,3 +633,180 @@ Received value: Shubhendu
 ---------------------------------------------------------
 ## Shared State Concurrency
 ---------------------------------------------------------
+- **Shared State Concurrency** is another way to communicate and share data between threads.
+- Message passing is one way data flow, in which sender thread passes a message to a receiving thread, the ownership of the message is transferred from sender to receiver.
+- **In shared thread concurrency, we have some piece of code residing inside the memory, that multiple threads can access by acquiring lock on the data.**
+- **Rust provides a type called `Mutex` to achieve `lock` required for shared state concurrency.**
+```rust
+use std::sync::Mutex;
+use std::thread;
+
+pub fn main() {
+    let m = Mutex::new(5);
+}
+```
+- `Mutex` stands for mutual exclusion, and it is a type that provides a lock around the data it holds. That is, data wrapped by a mutex can only be accessed by one thread at a time.
+- To gain access to a locking mechanism is used.
+- In particular, **when a thread wants to gain access to the data behind a mutex, it will acquire a `lock` on the mutex. Once a `lock` is acquired, the thread has exclusive access to the data, and no other thread can access the data until the lock is released.**
+- **Usually the lock will only be released once the thread is done with the data, allowing other threads to acquire the lock and access the data.**
+```rust
+use std::sync::Mutex;
+use std::thread;
+
+pub fn main() {
+    let m = Mutex::new(5);
+    {
+        let mut num = m.lock().unwrap();
+        *num = 6;
+    }
+}
+```
+- `lock()` method on the mutex will return a `Result`, `Ok` when the lock is acquired, and `Err` when there is an error, usually when the lock is already acquired by another thread and that thread panics.
+- `lock()` method will block the thread until the lock is acquired.
+- If there are multiple threads trying to call the lock, then only the first thread who makes a call to `lock()` will get the lock, and all other threads will be blocked until the lock is released.
+- `Mutex` have a reputation for being hard to manage, each time you acquire a lock, you have to make sure that you unlock it explicitly in order to make it available for other threads.
+- Fortunately, Rust type system, and ownership rules guarantees that you can't get locking and unlocking wrong.
+- **When the lock goes out of scope, Rust will automatically release the lock.**
+- **In the above code, lock will be automatically released when the `num` goes out of scope, or explicitly dropped.**
+- For instance, after the code block, we can acquire the lock again, and modify the value.
+```rust
+use std::sync::Mutex;
+use std::thread;
+
+pub fn main() {
+    let m = Mutex::new(5);
+
+    {
+        println!("Acquiring the lock in a custom block");
+        let mut num = m.lock().unwrap();
+        *num = 6;
+    }
+
+    println!("Acquiring lock in the main thread");
+    let lock_m = m.lock().unwrap();
+    println!("m = {:?}", lock_m);
+    
+    println!("Trying to acquire the lock in same main thread, without releasing the lock");
+    let lock_m1 = m.lock().unwrap();
+    println!("This code is blocked because the lock is held by previous Mutex guard {:?}", lock_m);
+}
+```
+```shell
+Acquiring the lock in a custom block
+Acquiring lock in the main thread
+m = 6
+Trying to acquire the lock in same main thread, without releasing the lock
+```
+- And the program is still running, because the lock is not released, so the main thread, and therefore program, is blocked at `let lock_m1 = m.lock().unwrap();` line.
+- **To make sure that program completes, we can explicitly drop the lock.**
+```rust
+use std::sync::Mutex;
+use std::thread;
+
+pub fn main() {
+    let m = Mutex::new(5);
+
+    {
+        println!("Acquiring the lock in a custom block");
+        let mut num = m.lock().unwrap();
+        *num = 6;
+    }
+
+    println!("Acquiring lock in the main thread");
+    let lock_m = m.lock().unwrap();
+    println!("m = {:?}", lock_m);
+    
+    println!("Dropping the lock in the main thread");
+    drop(lock_m);
+    
+    println!("Trying to acquire the lock in same main thread, after releasing the lock");
+    let lock_m1 = m.lock().unwrap();
+    println!("This code is not blocked because the lock is released {:?}", lock_m1);
+}
+```
+- Output:
+```shell
+Acquiring the lock in a custom block
+Acquiring lock in the main thread
+m = 6
+Dropping the lock in the main thread
+Trying to acquire the lock in same main thread, after releasing the lock
+This code is not blocked because the lock is released by previous Mutex guard 6
+```
+- A call to `drop(lock_m);` will release the lock, and the main thread will be able to acquire the lock again.
+=========================================================
+### Sharing Mutex between Threads
+=========================================================
+- Consider a files which needs to be accessed by multiple threads, for simplicity we will assume file contains `File` contains a single field of text, containing some textual data.
+```rust
+struct File {
+    text: Vec<String>;
+}
+
+fn sharing_states() {
+    let file = Mutex::new(File { text: vec![] });
+}
+```
+- In the above code, we have a `File` struct, which contains a `text` field, which is a vector of strings.
+- To make sure that only a single thread has access to the data at a time, we are wrapping the `File` struct in a `Mutex`.
+- This will make sure that only a single thread can access the `File` struct at a time, and `text` field can be modified by only one thread at a time.
+- Let's create few threads, where each thread will modify the `text` field of the `File` struct.
+```rust
+fn sharing_states() {
+    let file = Mutex::new(File { text: vec![] });
+
+    let mut thread_handles = Vec::new();
+
+    for i in 0..10 {
+        let handle = thread::spawn(move || {
+            println!("Thread {} is trying to acquire the lock", i);
+            let mut file = file.lock().unwrap();
+            file.text.push(format!("Thread {} wrote this line", i));
+        });
+        thread_handles.push(handle);
+    }
+}
+```
+- We have created a vector `thread_handles` to store the handles of the threads, so that we can join them later.
+- Each thread will try to acquire the lock, and then write a line to the `text` field of the `File` struct.
+- But this code, as it is, will not compile, because we are trying to move `file` into the closure, and then trying to use it again in the next iteration.
+- To fix this, we can clone the `file` and pass the clone to each thread.
+- But since we want to modify the same file, we can't go with that approach.
+- In this case, we want shared ownership of the `file`, for that we usually use `Rc` type, but `Rc` can't be send across threads safely, and we get compiler error.
+- **In order to get thread safe shared ownership, we need to use the `Arc` smart pointer.**
+- `Arc` stands for atomic reference counting, and it is a type that provides shared ownership of a value, and ensures that the value is not dropped until all the references to the value are dropped.
+- `Arc` is thread safe, and can be sent across threads safely.
+- Let's modify the code to use `Arc`.
+```rust
+use std::sync::{Arc, Mutex};
+use std::thread;
+
+struct File {
+    text: Vec<String>,
+}
+
+fn shared_states() {
+    let file = Arc::new(Mutex::new(File { text: vec![] }));
+
+    for i in 0..10 {
+        let file = Arc::clone(&file);
+        thread::spawn(move || {
+            println!("Thread {} is trying to acquire the lock", i);
+            let mut file_lock = file.lock().unwrap();
+            file_lock.text.push(format!("Thread {} wrote this line", i));
+        });
+    }
+
+    for handle in thread_handles {
+        handle.join().unwrap();
+    }
+
+    let file_lock = file.lock().unwrap();
+
+    for line in &file_lock.text {
+        println!("{}", line);
+    }
+}
+```
+- `Arc` makes sure that reference count is updated atomically, and it is thread safe.
+- **NOTE:** Initial `file` variable is not mutable, but we are able to modify the `text` field inside for loop, because `Mutex` uses interior mutability pattern.
