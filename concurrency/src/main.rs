@@ -2,7 +2,7 @@
 //           Concurrency
 //--------------------------------------------------------------------
 
-use concurrency::{barriers, basics_practice, messaging_through_channels, ownership_in_threads, sharing_states, threads_basics};
+use concurrency::{barriers, basics_practice, messaging_through_channels, ownership_in_threads, scoped_threads, sharing_states, threads_basics};
 
 
 fn main() {
@@ -29,4 +29,8 @@ fn main() {
     println!();
     println!("############ Barriers ############");
     barriers::main();
+
+    println!();
+    println!("############ Scoped Threads ############");
+    scoped_threads::main();
 }

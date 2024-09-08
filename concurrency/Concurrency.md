@@ -940,3 +940,44 @@ Thread 1, completed its part on Task 2.
 Thread 2, completed its part on Task 2.
 ```
 - We can see that all the threads are completing **Task 1** before starting **Task 2**.
+---------------------------------------------------------
+## Scoped Threads
+---------------------------------------------------------
+```rust
+use std::thread;
+
+fn main() {
+    let mut vec = vec![1, 2, 3, 4, 5];
+
+    let handle = thread::spawn(|| {
+        println!("{:?}", vec);
+    });
+}
+```
+- The above code will not compile, because rust can't tell how long the spawned thread will live, and therefore it can't guarantee that the `vec` will be available when the spawned thread tries to access it.
+- Usually to fix this, we can move the `vec` into the closure, so that the spawned thread takes ownership of `vec`.
+- But in some cases, we may want to borrow the `vec` immutably, and we don't want to move the `vec` into the closure.
+- Because moving prevents further use of vector in subsequent code.
+- `Scoped Threads` was introduced in Rust `1.63.0` to solve this problem.
+- It enhances the ability of threads to borrow data from the parent thread.
+- In particular, it provides clearer control over lifetime of borrowed variables for compiler, which can't simply be cleared using `.join()`.
+- To use scoped threads, we use `thread::scope` function, which takes a closure, and executes the closure in a new thread.
+```rust
+use std::thread;
+
+pub fn main() {
+    let mut vec = vec![1, 2, 3, 4, 5];
+
+    thread::scope(|scope| {
+        scope.spawn(|| {
+            println!("Thread 1: {:?}", vec);
+        });
+    });
+}
+```
+- In the above code, we are using `thread::scope` function, which takes a closure. Input to the closure, here `scope` can be any name and used to spawn threads.
+- `scope.spawn()` function is used to spawn a thread, and the closure passed to it will be executed in the spawned thread.
+- All the thread spawned inside the `scope` will be automatically joined when the `scope` goes out of scope.
+- And for compiler, this gives a clear understanding of the lifetime of the borrowed variables.
+- We can't violate the borrowing rules inside the scope, and we only have to consider the borrowing rules inside the scope.
+- **Scoped threads are useful when we want to borrow data from the parent thread, and we don't want to move the data into the closure.**
