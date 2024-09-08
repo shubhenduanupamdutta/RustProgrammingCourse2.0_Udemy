@@ -810,3 +810,133 @@ fn shared_states() {
 ```
 - `Arc` makes sure that reference count is updated atomically, and it is thread safe.
 - **NOTE:** Initial `file` variable is not mutable, but we are able to modify the `text` field inside for loop, because `Mutex` uses interior mutability pattern.
+---------------------------------------------------------
+## Synchronization Through Barriers
+---------------------------------------------------------
+- `Barriers` enable multiple threads to synchronize the beginning of some computation.
+- It is a point in code which halts the execution of calling threads until all the threads have executed the code up to that particular point.
+- Consider a scenario, where we have some computationally expensive tasks. To efficiently complete the task, we divide the task into multiple threads.
+- However, due to dependency among the tasks, the individual tasks has to be processed in sequential order, meaning task 2 can only commence once task 1 is completed.
+- To simulate this, we will create a variable tasks, and wrap it around by `Arc` and `Mutex`.
+```rust
+use std::sync::{Arc, Barrier, Mutex};
+use std::thread;
+
+pub fn main() {
+    let mut thread_handles = Vec::new();
+
+    let tasks = Arc::new(Mutex::new(vec![]));
+
+    for i in 0..5 {
+        let tasks = Arc::clone(&tasks);
+        let handle = thread::spawn(move || {
+            // Task 1
+            tasks.lock().unwrap().push(
+                format!("Thread {i}, completed its part on Task 1.")
+            );
+
+            // Task 2 
+            tasks.lock().unwrap().push({
+                format!("Thread {i}, completed its part on Task 2.")
+            });
+        });
+        thread_handles.push(handle);
+    }
+
+    for handle in thread_handles {
+        handle.join().unwrap();
+    }
+
+    let task_lock = &*tasks.lock().unwrap();
+
+    for contents in task_lock {
+        println!("{}", contents);
+    }
+}
+```
+- **Task 2** can only be done, when all the threads have completed **Task 1**.
+- Here we have created a vector `tasks`, which is a empty vector, wrapped by `Mutex`, which is then wrapped by `Arc`.
+- This will allow us to share the `tasks` vector among multiple threads.
+- During each loop, we will first clone the `tasks` vector (with shared ownership), and then push a string to the vector.
+- In **Task 1** we are pushing a string to the vector, and in **Task 2** we are pushing another string to the vector.
+- We can call `lock()` method on the `Mutex` to acquire the lock, which gives us `MutexGuard`. We can access the data inside the `MutexGuard` using `*` operator, but we can't take ownership, so we are using `&*` to access the data. First dereference `MutexGuard` to get the data, and then take a reference to the data, to not take ownership.
+- Let's run the code as it is.
+```shell
+Thread 0, completed its part on Task 1.
+Thread 0, completed its part on Task 2.
+Thread 1, completed its part on Task 1.
+Thread 1, completed its part on Task 2.
+Thread 2, completed its part on Task 1.
+Thread 2, completed its part on Task 2.
+Thread 3, completed its part on Task 1.
+Thread 3, completed its part on Task 2.
+Thread 4, completed its part on Task 1.
+Thread 4, completed its part on Task 2.
+```
+- We can see that all the threads are completing both the tasks, and there is no synchronization between the tasks.
+- Note that, we need to make sure that all the threads have completed **Task 1**, before starting **Task 2**.
+- `Barriers` can be used to achieve this synchronization.
+- To create a barrier, we will use `Barrier` type from `std::sync` module.
+- `Barrier` can be called with a number, which is the number of threads that need to reach the barrier, before the barrier is released.
+- Since `Barrier` will be used in multiple threads, we will wrap it around `Arc`.
+- Let's modify the code to use `Barrier`.
+```rust
+use std::sync::{Arc, Barrier, Mutex};
+use std::thread;
+
+pub fn main() {
+    let mut thread_handles = Vec::new();
+
+    let tasks = Arc::new(Mutex::new(vec![]));
+
+    let barrier = Arc::new(Barrier::new(5));
+
+    for i in 0..5 {
+        let tasks = Arc::clone(&tasks);
+        let barrier = Arc::clone(&barrier);
+        let handle = thread::spawn(move || {
+            // Task 1
+            tasks
+                .lock()
+                .unwrap()
+                .push(format!("Thread {i}, completed its part on Task 1."));
+
+            // Barrier point for synchronization
+            barrier.wait();
+            
+            // Task 2
+            tasks
+                .lock()
+                .unwrap()
+                .push(format!("Thread {i}, completed its part on Task 2."));
+        });
+        thread_handles.push(handle);
+    }
+
+    for handle in thread_handles {
+        handle.join().unwrap();
+    }
+
+    let task_lock = &*tasks.lock().unwrap();
+
+    for contents in task_lock {
+        println!("{}", contents);
+    }
+}
+```
+- In the above code, we have created a barrier with 5 threads, and we are cloning the barrier for each thread.
+- We are calling `wait()` method on the barrier, which will block the thread until all the threads have reached the barrier.
+- Let's run the code.
+```shell
+Thread 0, completed its part on Task 1.
+Thread 1, completed its part on Task 1.
+Thread 2, completed its part on Task 1.
+Thread 3, completed its part on Task 1.
+Thread 4, completed its part on Task 1.
+Thread 4, completed its part on Task 2.
+Thread 0, completed its part on Task 2.
+Thread 3, completed its part on Task 2.
+Thread 1, completed its part on Task 2.
+Thread 2, completed its part on Task 2.
+```
+- We can see that all the threads are completing **Task 1** before starting **Task 2**.
