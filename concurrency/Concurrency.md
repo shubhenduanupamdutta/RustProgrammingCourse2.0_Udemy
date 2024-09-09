@@ -1107,3 +1107,78 @@ Thread 1: Data: 10
 - **It is important to know that, there is a clear distinction between `thread::park_timeout()` and `thread::sleep()`.**
     - `thread::sleep()` unconditionaly blocks the thread for a specified duration, and then wakes up the thread.
     - `thread::park_timeout()` blocks the thread for a specified duration, but it can be woken up by some other thread, before the specified duration.
+--------------------------------------------------------
+## Asynchronous Programming (async/await)
+--------------------------------------------------------
+- **Asynchronous programming** is a programming paradigm that allows for non-blocking execution of code.
+- Typical code in rust is synchronous, which executes line by line in sequential order without yielding control back to runtime.
+- In contrast, asynchronous code, the rust provides the ability to write async code, which allows us to write functions, closures and blocks that can pause execution and yield control back to the runtime, allowing other code to make progress and then pick back up where it left off.
+- The pauses to wait for are generally for some input and output to occur, such as reading from a file, or waiting for a network request to complete.
+- Due to yielding nature of async code, it is also sometimes known as `cooperative scheduling`, as it gives the control back to the executor or runtime, thereby cooperatively allowing others to make progress and execute.
+- The `async` keyword will make a function asynchronous, and will change the behavior of the code in terms of how it will execute.
+```rust
+async fn printing() {
+    println!("I am an async function.");
+}
+
+pub fn main() {
+    printing();
+}
+```
+- In the above code, we have created an async function `printing`, and we are calling it in the `main` function.
+- Usually in normal function, we expect the output to be a string, but in this case, there is no output in terminal.
+- **Calling an async function will not execute the function, but will return a `Future` which can be executed by the runtime.**
+- The async function returns something which implements the future trait, and the future can be executed by the runtime.
+- A `Future` trait has many details, but at an abstract level it has a poll method which can either return a **ready** state when a return value is available or **pending** indicating that the value is currently not available.
+- The executor, which normally is CPU, will poll the future, and if the future is ready, it will execute the future, and if the future is pending, it will wait for the future to be ready.
+- `Futures` are like promises, which is giving you the promise that the function will generate some value in future.
+- **The futures can only start to execute and working on to generate the value when we await on it.**
+- **`.await` drives the `Future` to completion, and returns the value that the future is supposed to return.**
+- #### NOTE: Rust `Futures` are lazy, meaning that they won't do anything unless driven to completion.
+- **Also `.await()` is only allowed inside an async function or blocks, and `main` function can't be async.**
+- **The solution to this is provided by `executor` or `runtime`. The executor or runtime task is to take the topmost future, like the main function, and manually poll them for completion, especially if there are futures nested inside other futures.**
+- **`Executor` is also responsible for running multiple features in parallel to make the concurrency possible between multiple futures.**
+- The standard library doesn't provide an async runtime, so we need to use a community built async runtime, such as `tokio` or `async-std`.
+```rust
+async fn printing() {
+    println!("I am an async function.");
+}
+
+#[tokio::main]
+pub async fn main() {
+    println!("Using async/await in Rust.");
+    let future = printing().await;
+}
+```
+- In the above code, we are using `tokio` runtime to run the async function.
+- We are using `#[tokio::main]` attribute to make the `main` function async.
+- `#[tokio::main]` is a macro that sets up the tokio runtime, and makes the `main` function async. That, is this drives our `main` function to completion.
+```rust
+async fn printing() {
+    println!("I am an async function.");
+}
+
+#[tokio::main]
+pub async fn main() {
+    println!("Using async/await in Rust.");
+    let future = printing();
+
+    println!("The future is not yet polled by runtime. Since async functions are lazy and only executed when awaited.");
+    future.await;
+}
+```
+- If we change the code to above, we can see that the output is,
+```shell
+Using async/await in Rust.
+The future is not yet polled by runtime. Since async functions are lazy and only executed when awaited.
+I am an async function.
+```
+- We can see that our print statement is executed first, even though it was called after the line, `let future = printing();`.
+- **This is because the async functions are lazy, and only executed when awaited.**
+- This is super helpful, when we would like to delay some costly computation, until it is actually needed. 
+- #### Benefits of the `Futures` being lazy
+    **1.** They are a zero cost abstraction, this means that if we don't await on a future, it won't be executed, and therefore won't consume any resources and cost any runtime.
+    **2.** The are easy to cancel, if we don't need the result of the future, we can call the `drop` method on the future, and it will be dropped, and won't be executed. `drop(future);`
+    **3.** They are easy to chain, we can chain multiple futures together, and they will only be executed when awaited.
+- **The `async` keyword is used to make a function asynchronous, and the `await` keyword is used to drive the future to completion.**
+--------------------------------------------------------
