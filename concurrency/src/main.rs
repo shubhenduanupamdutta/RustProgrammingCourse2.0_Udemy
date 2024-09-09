@@ -2,7 +2,7 @@
 //           Concurrency
 //--------------------------------------------------------------------
 
-use concurrency::{async_await, barriers, basics_practice, messaging_through_channels, ownership_in_threads, scoped_threads, sharing_states, thread_parking, threads_basics};
+use concurrency::{async_await, barriers, basics_practice, messaging_through_channels, ownership_in_threads, scoped_threads, sharing_states, thread_parking, threads_basics, tokio_tasks};
 
 
 fn main() {
@@ -41,4 +41,8 @@ fn main() {
     println!();
     println!("############ Async/Await ############");
     async_await::main();
+
+    println!();
+    println!("############ Tokio Tasks ############");
+    tokio_tasks::main();
 }

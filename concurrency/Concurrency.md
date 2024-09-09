@@ -1182,3 +1182,146 @@ I am an async function.
     **3.** They are easy to chain, we can chain multiple futures together, and they will only be executed when awaited.
 - **The `async` keyword is used to make a function asynchronous, and the `await` keyword is used to drive the future to completion.**
 --------------------------------------------------------
+## Tokio Tasks
+--------------------------------------------------------
+- **Tokio** is a runtime for writing reliable, asynchronous, and slim applications.
+```rust
+async fn printing() {
+    println!("I am an async function");
+}
+
+#[tokio::main]
+pub async fn main() {
+    let x = printing();
+
+    x.await;
+}
+```
+- In the above code, we are not taking advantage of asynchronous coding, and that's because everything is running serially.
+- To make our async code run concurrently, we can use `Tokio Tasks`.
+- **Tokio Tasks** are lightweight, non-blocking units of execution, which can be used to run multiple futures concurrently.
+- In main, let's spawn few tasks, which will execute the printing function concurrently.
+```rust
+async fn printing(_num: i32) {
+    println!("I am an async function, executing in task {}", _num);
+}
+
+#[tokio::main]
+pub async fn main() {
+
+    let mut handles = Vec::new();
+
+    for i in 0..3 {
+        let handle = tokio::spawn(async move {
+            println!("Task {i}, printing first time");
+            printing(i).await;
+            println!("Task {i}, printing second time");
+            printing(i).await;
+            println!("Task {i} finished");
+        });
+        handles.push(handle);
+    }
+
+    for handle in handles {
+        handle.await.unwrap();
+    }
+}
+```
+- In the above code, we are creating a vector of handles, and then spawning few tasks.
+- Each task will execute the `printing` function, and we are awaiting on the handle to make sure that the task has finished.
+- **Tokio Tasks are used to run multiple futures concurrently.**
+- `tokio::spawn` function takes a future as an argument and returns a `JoinHandle`, which can be awaited to make sure that the task has finished.
+- Just like threads, `move` keyword is used to take ownership of the variables from the environment, in this case we are taking the ownership of variable `i`, which is passed on the `printing` function.
+- At the end of `main` we loop through the handles, and await on each handle to make sure that the task has finished.
+- `JoinHandle` return a result upon `await` which can be unwrapped to get the result.
+- #### API for task is similar to threads, which is on purpose, to make it easier to switch between tasks and threads.
+- On running the code, we get the output,
+```shell
+Task 0, printing first time
+I am an async function, executing in task 0
+Task 1, printing first time
+I am an async function, executing in task 1
+Task 1, printing second time
+I am an async function, executing in task 1
+Task 1 finished
+Task 2, printing first time
+I am an async function, executing in task 2
+Task 2, printing second time
+I am an async function, executing in task 2
+Task 2 finished
+Task 0, printing second time
+I am an async function, executing in task 0
+Task 0 finished
+All tasks finished
+```
+- We can see that all the tasks are running concurrently, and the output is interleaved.
+- Like threads, execution is not deterministic, and the order of execution can vary.
+- By default, tokio uses the thread pool to execute tasks on multiple threads, we could however, force `tokio` to run all the tasks on a single thread by changing the flavor of the runtime.
+```rust
+#[tokio::main(flavor = "current_thread")]
+pub async fn main() {
+    // Code
+}
+```
+- We get output,
+```shell
+Task 0, printing first time
+I am an async function, executing in task 0
+Task 0, printing second time
+I am an async function, executing in task 0
+Task 0 finished
+Task 1, printing first time
+I am an async function, executing in task 1
+Task 1, printing second time
+I am an async function, executing in task 1
+Task 1 finished
+Task 2, printing first time
+I am an async function, executing in task 2
+Task 2, printing second time
+I am an async function, executing in task 2
+Task 2 finished
+All tasks finished
+```
+- Since in our case, `printing().await` is not doing any blocking operation, so the `current_thread` flavor is working serially. Since `.await` is immediately returning the value, and the task is finished.
+- If for some reason, call to printing waits for some IO/Network operation, then the other tasks will be given the chance.
+- Let's simulate this, by adding a delay in the `printing` function, using `tokio::time::sleep`.
+```rust
+use tokio::time::sleep;
+use std::time::Duration;
+
+async fn printing(_num: i32) {
+    sleep(Duration::from_secs(1)).await;
+    println!("I am an async function, executing in task {}", _num);
+}
+
+// Rest of the code
+```
+- The sleep function in tokio is also async, and it will return a future, which can be awaited.
+- `sleep` in tokio is similar to the `thread::sleep` function, except that it will stop the current `Future` from executing for a given duration of time, instead of the entire thread.
+- Then our output shows concurrency, even when running on a single thread.
+```shell
+Task 0, printing first time
+Task 1, printing first time
+Task 2, printing first time
+I am an async function, executing in task 0
+Task 0, printing second time
+I am an async function, executing in task 1
+Task 1, printing second time
+I am an async function, executing in task 2
+Task 2, printing second time
+I am an async function, executing in task 0
+Task 0 finished
+I am an async function, executing in task 1
+Task 1 finished
+I am an async function, executing in task 2
+Task 2 finished
+All tasks finished
+```
+- While the same non-blocking behavior can be achieved using multiple threads, instead of `single_thread` flavor, but in most use cases, number of created tasks may grow substantially compared to available threads, this means that the multiple tasks will be executed on same thread.
+- Unlike threads, async code uses cooperative scheduling, instead of preemptive scheduling.
+- If we have two threads, the OS can switch between the two threads at any given time. But in async code, we tell the runtime when a block of code is ready to yield, so that other async code can run on the same thread.
+- **In the above code, in the tasks, there are two times where we are yielding control back to the runtime.**
+- This grants the developer more control, but also more responsibility, as the developer has to make sure that the code is yielding control back to the runtime at the right time. And written code is efficient.
+- For example, **it is important to avoid CPU intensive operation within an async function.**
+- **If we have a CPU intensive operation, we should run it in a separate thread, and then communicate the result back to the async code.**
+--------------------------------------------------------
