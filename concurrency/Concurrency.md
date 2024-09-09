@@ -981,3 +981,129 @@ pub fn main() {
 - And for compiler, this gives a clear understanding of the lifetime of the borrowed variables.
 - We can't violate the borrowing rules inside the scope, and we only have to consider the borrowing rules inside the scope.
 - **Scoped threads are useful when we want to borrow data from the parent thread, and we don't want to move the data into the closure.**
+---------------------------------------------------------
+## Thread Parking
+---------------------------------------------------------
+- Let's look at a code,
+```rust
+use std::sync::{Arc, Mutex};
+use std::thread;
+use std::time::Duration;
+
+pub fn main() {
+    let thread_1 = thread::spawn(|| {});
+    let thread_2 = thread::spawn(|| {});
+}
+```
+- In the above code, we are creating two threads, `thread_1` and `thread_2`, and both right now are doing nothing.
+- We are interesting in adding following functionality,
+    - `thread_1` should do some work, then read in some shared data, which is being updated by `thread_2`.
+    - `thread_2` will also do some work and then update the shared data.
+    - `thread_1`, however, should only reads in shared data when it is updated.
+- To code this, we will first create a shared data source using `Mutex` wrapped by an `Arc`.
+```rust
+use std::sync::{Arc, Mutex};
+use std::thread;
+use std::time::Duration;
+
+pub fn main() {
+    let data = Arc::new(Mutex::new(5));
+    let data_clone = data.clone();
+
+    let thread_1 = thread::spawn(move || {
+        println!("Inside thread 1: I am doing some work");
+        thread::sleep(Duration::from_millis(20));
+        println!("Inside thread 1: I am doing some more work");
+        println!("Inside thread 1: First task finished.");
+
+        // Printing value of shared data
+        println!("Thread 1: Printing the updated shared data.");
+        println!("Thread 1: Data: {:?}", *data.lock().unwrap());
+    });
+
+    let thread_2 = thread::spawn(move || {
+        println!("Inside thread 2: I am doing some work");
+        thread::sleep(Duration::from_secs(1));
+        println!("Inside thread 2: Working on updating the shared data."); // This simulates that the thread is undergoing some heavy computation
+        *data_clone.lock().unwrap() = 10;
+        println!("Inside thread 2: Updated the shared data.");
+    });
+
+    thread_1.join().unwrap();
+    thread_2.join().unwrap();
+}
+```
+- In the above code, we are creating a shared data source using `Arc` and `Mutex`.
+- We are cloning the `Arc` to pass it to `thread_2`, because we can't move the `Arc` into the closure, as it will be moved into the closure, and we can't use it in the next thread.
+- We are updating the shared data in `thread_2`, and reading the shared data in `thread_1`.
+- But the output is not as expected.
+```shell
+Inside thread 1: I am doing some work
+Inside thread 2: I am doing some work
+Inside thread 1: I am doing some more work
+Inside thread 1: First task finished.
+Thread 1: Printing the updated shared data.
+Thread 1: Data: 5
+Inside thread 2: Working on updating the shared data.
+Inside thread 2: Updated the shared data.
+```
+- We wanted `thread_1` to wait until `thread_2` updates the shared data, but it is not happening.
+- There can be different solutions to this problem
+    - **Possible Solution 1:** We can use `thread::sleep` in `thread_1` to wait for `thread_2` to update the shared data. In our case we can use `thread::sleep(Duration::from_secs(3));` to wait for 3 second, and then read the shared data. However its is not ideal, because in this, we will need to know how much time `thread_2` will take to update the shared data, which can be a variable quantity, and we can't predict it. If we overestimate, we will waste CPU cycles, and if we underestimate, we will get wrong results.
+    - **Possible Solution 2:** We can use `thread::park` and `thread::unpark` functions to solve this problem. A call to `thread::park` will block that thread, until a call to `thread::unpark` is made by some other thread. We can use this to make `thread_1` wait until `thread_2` updates the shared data.
+```rust
+pub fn main() {
+    let data = Arc::new(Mutex::new(5));
+    let data_clone = data.clone();
+
+    let thread_1 = thread::spawn(move || {
+        println!("Inside thread 1: I am doing some work");
+        thread::sleep(Duration::from_millis(20));
+        println!("Inside thread 1: I am doing some more work");
+        println!("Inside thread 1: First task finished.");
+
+        // Parking the thread
+        println!("Parking the thread, until thread 2 finishes its work.");
+        thread::park();
+
+        // Printing value of shared data
+        println!("Thread 1: Printing the updated shared data.");
+        println!("Thread 1: Data: {:?}", *data.lock().unwrap());
+    });
+
+    let thread_2 = thread::spawn(move || {
+        println!("Inside thread 2: I am doing some work");
+        thread::sleep(Duration::from_secs(1));
+        println!("Inside thread 2: Working on updating the shared data."); // This simulates that the thread is undergoing some heavy computation
+        *data_clone.lock().unwrap() = 10;
+        println!("Inside thread 2: Updated the shared data.");
+    });
+
+    thread_2.join().unwrap();
+    println!("Thread 2 finished its work."); // That means shared data is updated
+    thread_1.thread().unpark();
+    thread_1.join().unwrap();
+}
+```
+- In the above code, we are using `thread::park()` to block the `thread_1`.
+- In the main thread, we first call `thread_2.join().unwrap();` to make sure that `thread_2` has finished its work, and updated the shared data.
+- Then we call `thread_1.thread().unpark();` to unpark the `thread_1`, and then call `thread_1.join().unwrap();` to make sure that `thread_1` has finished its work.
+- Output:
+```shell
+Inside thread 1: I am doing some work
+Inside thread 2: I am doing some work
+Inside thread 1: I am doing some more work
+Inside thread 1: First task finished.
+Parking the thread, until thread 2 finishes its work.
+Inside thread 2: Working on updating the shared data.
+Inside thread 2: Updated the shared data.
+Thread 2 finished its work.
+Thread 1: Printing the updated shared data.
+Thread 1: Data: 10
+```
+- We can see that `thread_1` is blocked until `thread_2` updates the shared data. And we get the expected output.
+- **`thread::park()` and `thread::unpark()` are useful when we want to block a thread until some condition is met.**
+- There is also similar, `thread::park_timeout` function, which will block the thread for a specified duration, and then unpark the thread. It will also unpark the thread if the thread is unparked by some other thread.
+- **It is important to know that, there is a clear distinction between `thread::park_timeout()` and `thread::sleep()`.**
+    - `thread::sleep()` unconditionaly blocks the thread for a specified duration, and then wakes up the thread.
+    - `thread::park_timeout()` blocks the thread for a specified duration, but it can be woken up by some other thread, before the specified duration.
