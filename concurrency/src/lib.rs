@@ -8,3 +8,4 @@ pub mod scoped_threads;
 pub mod thread_parking;
 pub mod async_await;
 pub mod tokio_tasks;
+pub mod web_scraping_example;

@@ -1325,3 +1325,26 @@ All tasks finished
 - For example, **it is important to avoid CPU intensive operation within an async function.**
 - **If we have a CPU intensive operation, we should run it in a separate thread, and then communicate the result back to the async code.**
 --------------------------------------------------------
+## Web Scraping Example
+--------------------------------------------------------
+- Let's look at a web scraping example, where we will compare the performance of synchronous and asynchronous code, when doing network bound operations.
+- `ureq` is a simple and easy to use HTTP client for Rust.
+- We use `ureq` to make get request to few webpages, and convert the response to string.
+- We will compare the performance of synchronous and asynchronous code, when making multiple requests to the webpages.
+- Code in **`web_scraping_example.rs`**.
+- Running the code, we get the output,
+```shell
+Getting webpages without threads or async/await...
+Time taken without threads or async/await: 2.98s
+
+Getting webpages with threads...
+Time taken with threads: 156.99ms
+
+Getting webpages with async/await...
+Time taken with async/await: 150.76ms
+```
+- We can see that the async/await code is faster than the code with threads, and the code without threads is the slowest.
+- **In this case, async/await is slightly faster than threads, because it is network bound operation, for which async/await is more suitable.**
+- **Threads are more suitable for CPU bound operations, where we want to run multiple tasks concurrently.**
+- We can clearly see the benefits of async/await, when dealing with network bound operations.
+- And benefits of multi-threading, when using operations which are independent but blocking.
