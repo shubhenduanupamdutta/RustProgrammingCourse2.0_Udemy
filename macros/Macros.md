@@ -159,3 +159,178 @@ pub fn main() {
 ```shell
 cargo install cargo-expand
 ```
+- Once installed, we can use it as follows,
+```shell
+cargo expand
+```
+- This will display the expanded code of the macros in the terminal.
+- **This is a very useful tool to understand the macro expansion.**
+
+---------------------------------------------------------
+### Capturing Types
+---------------------------------------------------------
+#### Using `ty` Capture
+=========================================================
+- We will start with special form of captures that is used for types.
+- We will cover this with an example of taking input from terminal.
+- Usually in Rust, reading input is slightly complex from other languages.
+```rust
+macro_rules! input {
+    () => {
+        let mut n = String::new();
+        std::io::stdin()
+        .read_line(&mut n)
+        .expect("Failed to read input.");
+
+        let n = n.trim().parse().expect("Invalid input");
+    }
+}
+```
+- Last line of code in above macro is used for converting the input to the desired type. So we need to pass the type of the input to the macro.
+- We can use special capture to do this, called `ty`. 
+```rust
+macro_rules! input {
+    ($t: ty) => {
+        let mut n = String::new();
+        std::io::stdin()
+        .read_line(&mut n)
+        .expect("Failed to read input.");
+
+        let n: $t = n.trim().parse().expect("Invalid input");
+        n
+    }
+}
+```
+- We can use the `$t: ty` capture to capture the type of the input and then use it in the code.
+- We can use this `$t` in the code as we have used in the last line of the macro, to convert the input to the desired type.
+- And in the last line of the macro, we are returning the input.
+- We can use this macro as follows,
+```rust
+pub fn main() {
+    println!("Please enter a floating point number:");
+    let some_input = input!(f64);
+}
+```
+- But the compiler is not happy with this code. It is throwing an error. The error is because when expanding the code, brackets `{}` are not part of the macro expansion. That means we have these lines as substitution in the macro expansion, and we are assigning lines of code to a variable.
+- We can enclose the block of code in `{}` and then return the variable.
+- Without introducing these extra brackets, we will have all these lines being substituted for the invocation, which doesn't correspond to any valid Rust code.
+```rust
+macro_rules! input {
+    ($t: ty) => {{
+        let mut n = String::new();
+        std::io::stdin()
+            .read_line(&mut n)
+            .expect("Failed to read input.");
+
+        let n: $t = n.trim().parse().expect("Invalid input");
+        n
+    }};
+}
+
+pub fn main() {
+    println!("Please enter a floating point number:");
+    let some_input = input!(f64);
+    println!("You entered: {}", some_input);
+}
+```
+- Now the code will compile and run successfully.
+- **In summary, we can use `ty` capture to capture the type of the input and then use it in the code.**
+
+=========================================================
+- Let's look at another example of using `ty` capture.
+- Let's define a macro for adding numbers in different formats or types with the name of `add_as`, which takes two expressions and one type.
+```rust
+macro_rules! add_as {
+    ($a: expr, $b: expr, $type: ty) => {
+        $a as $type + $b as $type
+    };
+}
+
+fn main() {
+    let a: i8 = 10;
+    let b: f32 = 20.0;
+    let c = add_as!(a, b, f64);
+}
+```
+- This code will compile and run successfully.
+- In absence of macros we would have to handle each type conversion manually, which will require more code and will be more error prone.
+- **Idea behind `macros` are to make the code more readable by extracting out some of the unwanted details, and boilerplate code.**
+
+---------------------------------------------------------
+### Using `ident` Capture
+=========================================================
+- Identifiers are something in our program that has some name associated with it, such as variable names, function names, with the help of which we are able to identify something inside the code.
+- We can capture identifiers using `ident` capture.
+- Let's define a simple macro `some_macro`.
+```rust
+macro_rules! some_macro {
+    () => { let mut x = 10;}
+}
+
+fn main() {
+    some_macro!();
+}
+```
+- Above code will compile with no errors.
+- But if we try to mutate the variable `x` in the main function, it will throw an error.
+```rust
+fn main() {
+    some_macro!();
+    x = x + 1;
+}
+```
+- `Cannot find value x in this scope` error will be thrown.
+- But this should work fine? Right? Because we have defined `x` in the macro, and macros are expanded at compile time.
+- This is because the identifier, which in this case is the variable `x` that is inside the macro and in the main function are just completely different. They are not allowed to cross the boundaries, i.e. the scope of the macro. That's why they are also called hygiene macros.
+- This is where `ident` capture comes into play.
+- They allow you to cross the boundaries which will otherwise may not be possible.
+- In general, variables and identifiers in outside the macro world cannot be transferred or shifted to the inside of the macro world. But with the help of `ident` capture, we can do this.
+- Let's see an example of this.
+```rust
+macro_rules! some_macro {
+    ($var: ident) => { $var = $var + 1;}
+}
+
+fn main() {
+    let mut x = 10;
+    some_macro!(x);
+    println!("{}", x);
+}
+```
+- In the above code, we are passing the variable `x` to the macro and then mutating it inside the macro.
+- This code will compile and run successfully.
+- **In summary, `ident` capture allows us to pass the identifiers from the outside world to the inside world of the macro.**
+
+---------------------------------------------------------
+### Ownership in Macros
+=========================================================
+- The macros doesn't take ownership of something, you have to keep and eye on the expansion only.
+- **This means that macro has nothing additional to do with ownership of variables and they retain their ownership as they would have in the normal code.**
+
+---------------------------------------------------------
+### Final Example with all the concepts
+=========================================================
+- We will define a macro which will create a function for us.
+```rust
+macro_rules! create_function {
+    ($func_name: ident, $input: ident, $type: ty) => {
+
+        fn $func_name($input: $type) -> $type {
+            println!("You called {:?)() with the input of {:?}", stringify!($func_name), stringify!($input));
+        }
+    }
+}
+```
+- Let us now invoke the macro in our program since the definition of the functions are outside the main function.
+```rust
+create_function(f1, x, i32);
+create_function(f2, y, f64);
+
+fn main() {
+    let x = 10;
+    let y = 20.0;
+
+    let a = f1(x);
+    let b = f2(y);
+}
+```
