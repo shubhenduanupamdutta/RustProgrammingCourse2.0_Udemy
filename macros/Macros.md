@@ -384,4 +384,5 @@ pub fn main() {
     - We can use any delimiter, like `;`, `:` etc.
     - We can also add the delimiter to the repeated sequence pattern, like `$(...;),`. In this case the delimiter will be `;`, and compiler will enforce that the pattern should be separated by `;`, and each expression should end with `;`, even last one.
     - Repetition pattern which we use to match should be consistent with pattern used in expansion part.
-    
+
+---------------------------------------------------------

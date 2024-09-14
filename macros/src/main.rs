@@ -2,7 +2,7 @@
 //        Macros in Rust
 //----------------------------------------------
 
-use macros::{capturing_types, macros_basics, repeating_patterns};
+use macros::{assignment_q_1, capturing_types, macros_basics, repeating_patterns};
 
 fn main() {
     println!("############# Macros in Rust #############");
@@ -18,4 +18,8 @@ fn main() {
     println!();
     println!("########## 3. Repeating Patterns ##########");
     repeating_patterns::main();
+
+    println!();
+    println!("########### 4. Assignment Q1 ###########");
+    assignment_q_1::main();
 }
