@@ -334,3 +334,54 @@ fn main() {
     let b = f2(y);
 }
 ```
+---------------------------------------------------------
+### Repeating Patterns in Macros
+---------------------------------------------------------
+- `Repeating Patterns` are essentially patterns that are repeating and we would like to make substitutions for each of the repeated patterns.
+- Let's consider an example of a macro, that will concatenate multiple strings.
+- There can be any number of input strings and we would like to concatenate them.
+- If there are no input strings, we would like to return an empty string.
+- Repeated sequences are are mentioned using `$(...),`.
+- Brackets inside `$(...),`, i.e. in place of `...` are used to capture the repeated patterns. And `,` is used to denote the delimiter. It can be any delimiter, like `;`, `:` etc.
+- After the delimiter `,`, we can use `*` to denote that the pattern can be repeated zero or more times. `+` can be used to denote that the pattern can be repeated one or more times. `?` can be used to denote that the pattern can be repeated zero or one time.
+- 
+```rust
+macro_rules! string_concat {
+    () => { String::new() };
+    // ($some_str: expr) => {{
+    //     let mut s = String::new();
+    //     s.push_str($some_str);
+    //     s
+    // }};  // Last match can be used for above two matches
+    ($($some_str: expr), +) => {{
+        let mut s = String::new();
+        $(
+            s.push_str($some_str);
+        )*
+        s
+    }};
+}
+
+pub fn main() {
+    let null_str = string_concat!();
+    println!("Null String: {}", null_str);
+
+    println!();
+    println!("Using one string:");
+    let some_str = string_concat!("Hello, World!");
+    println!("Some String: {}", some_str);
+
+}
+```
+- In the above code, we have defined a macro `string_concat` which takes any number of strings and concatenates them.
+
+=========================================================
+#### Additional Information regarding delimiters and repetitions operators
+=========================================================
+- **Delimiters**
+    - We can remove the `,` from repeating pattern and it will still work, because it will use default delimiter ` `, i.e. space.
+    - Generally the convention is to use `,` as delimiter.
+    - We can use any delimiter, like `;`, `:` etc.
+    - We can also add the delimiter to the repeated sequence pattern, like `$(...;),`. In this case the delimiter will be `;`, and compiler will enforce that the pattern should be separated by `;`, and each expression should end with `;`, even last one.
+    - Repetition pattern which we use to match should be consistent with pattern used in expansion part.
+    
