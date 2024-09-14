@@ -386,3 +386,30 @@ pub fn main() {
     - Repetition pattern which we use to match should be consistent with pattern used in expansion part.
 
 ---------------------------------------------------------
+# Question Mark Operator `?`
+---------------------------------------------------------
+- The question mark operator, `?`, is typically used with `Result` type to propagate the error.
+- More specifically, it will grab the value inside the okay variant in case of `Ok` variant.
+- Convenient way of unwrapping `Ok` variant.
+- In case of `Err` variant, it will return the error from the function.
+```rust
+use std::num::ParseIntError;
+
+fn parse_str(input: &str) -> Result<i32, ParseIntError> {
+    let integer = input.parse::<i32>()?;
+    println!("The value of integer is: {}", integer);
+    Ok(integer)
+}
+
+pub fn main() {
+    parse_str("10").unwrap();
+}
+```
+- In the above code, we have defined a function `parse_str` which takes a string and returns a `Result` type. It will parse the string to an integer and return the integer.
+- We are using the question mark operator to propagate the error in case of `Err` variant.
+- `?` operator will take the ownership of the values in connection with the `Result` type, if the values in the `Result` type are heap allocated.
+- The question mark operator can also be used with `Option` type.
+- In case of `Option` type, it will return the value inside the `Some` variant, and in case of `None` variant, it will return `None` immediately.
+- **In summary, the question mark operator is used to propagate the error in case of `Result` type and to return the value in case of `Option` type.**
+- We can also use multiple `?` operators in a single line.
+```rust
