@@ -1,0 +1,6 @@
+[package]
+name = "real_life_problems_in_rust"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
