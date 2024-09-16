@@ -128,3 +128,75 @@ product_3 popularity is increasing or decreasing
 - #### Explanation
     - We have used a hash map to store the products and their popularity scores. We have then used a function to analyze the popularity scores. We have then printed the popularity analysis of each product.
     - The `popularity_analysis` function checks if the popularity scores are increasing or decreasing. If the scores are increasing or decreasing, the function returns true. Otherwise, it returns false. In detail, the function checks if the popularity scores are increasing or decreasing by comparing the current score with the next score. If the current score is greater than the next score, the scores are decreasing. If the current score is less than the next score, the scores are increasing. If the scores are neither increasing nor decreasing, the scores are fluctuating.
+---------------------------------------------------------
+## Highest Price Stock using MaxStack and Structures
+---------------------------------------------------------
+### Problem Statement - *Given a list of stocks and their week-wise prices, find the stock with the highest price in any week in little to no time.*
+### Data Structures and Patterns Used - *MaxStack, Structures, Vectors*
+=========================================================
+- #### Real Life Scenario
+    - *A business has many stocks to offer. For each stock the business has collected some information which basically shows the price of the stock for each week. They are interested in a feature, which grabs the highest value the stock may have reached at any point in time. They may also want to go back sequentially week wise and determine the highest value of stocks. Since there are lots of data and many different kinds of stocks, the business wants to have a solution that is efficient and fast.*
+- #### Implementation Detail
+    - **Assumption** - We are given a list of stocks and their week-wise prices. We will be using a max stack to find the stock with the highest price in any week.
+    `MaxStack` is simple stack, but has information of the maximum element in the stack at all times. And this information can be obtained in little to no time. In `O(1)` time complexity.
+
+    - `MaxStack` can be implemented in different ways, but we will implement it using structure containing two stacks. Two stacks will be referred to as the main stack and the max stack. The main stack will store the elements and the max stack will store the maximum element at the top of the stack.
+```rust
+struct MaxStack {
+    main_stack: Vec<i32>,
+    max_stack: Vec<i32>,
+}
+
+impl MaxStack {
+    fn new() -> Self {
+        MaxStack {
+            main_stack: Vec::new(),
+            max_stack: Vec::new(),
+        }
+    }
+
+    fn push(&mut self, value: i32) {
+        self.main_stack.push(value);
+        if !self.max_stack.is_empty() && (self.max_stack.last().unwrap() > &value) {
+            self.max_stack.push(*self.max_stack.last().unwrap());
+        } else {
+            self.max_stack.push(value);
+        }
+    }
+
+    fn pop(&mut self) {
+        self.main_stack.pop();
+        self.max_stack.pop();
+    }
+
+    fn max_value(&self) -> i32 {
+        *self.max_stack.last().unwrap_or(&0)
+    }
+}
+
+pub fn main() {
+    let mut stack = MaxStack::new();
+    stack.push(55);
+    stack.push(80);
+    stack.push(120);
+    stack.push(99);
+    stack.push(22);
+    stack.push(140);
+    stack.push(145);
+
+    println!("Maximum value of stock: {}", stack.max_value());
+
+    println!("After going back one week");
+    stack.pop();
+    println!("Maximum value of stock: {}", stack.max_value());
+}
+```
+- #### Output
+```shell
+Maximum value of stock: 145
+After going back one week
+Maximum value of stock: 140
+```
+- #### Explanation
+    - We have implemented a max stack to find the stock with the highest price in any week. We have then pushed the stock prices into the stack. We have then printed the maximum value of the stock. We have then popped the stock price from the stack and printed the maximum value of the stock.
+---------------------------------------------------------
