@@ -75,4 +75,56 @@ The word group containing the word 'teh' is ["the", "teh", "het"]
 - #### Explanation
     - We have used a hash map to group the words that are anagrams of each other. We have used a vector to store the frequency of each character in a word. We have then used this vector to create a key for the hash map. We have then grouped the words based on the key. Finally, we have printed the word group containing the input word "teh".
 ---------------------------------------------------------
-## 
+## Product Popularity Using HashMaps
+---------------------------------------------------------
+### Problem Statement - *Given a list of products and their popularity, find the most popular product.*
+### Data Structures and Patterns Used - *HashMap, Loops, Conditional Statements*
+=========================================================
+- #### Real Life Scenario
+    - *A business has many products to offer. For each product the business has collected some information which basically shows the popularity of the product. The business wants to know which product is the most popular among all the products. This popularity score is derived from customer feedback, likes, dislikes, reviews, etc. The scores are updated weekly and added to the end of list containing previous scores. The business wants to know if the popularity of a product is fluctuating, increasing or decreasing over time. Moreover, the would like to identify and separate a product if it is gaining or losing popularity.*
+
+- #### Implementation Detail
+    - **Assumption** - We are given a list of products and their popularity scores. Company uses HashMaps to effectively store the product and their respective popularity scores. Key are the product names and values is a vector containing popularity scores.
+```rust
+use std::collections::HashMap;
+
+fn popularity_analysis(scores: Vec<i32>) -> bool {
+    let mut increasing = true;
+    let mut decreasing = true;
+    for i in 0..scores.len() - 1 {
+        if scores[i] > scores[i + 1] {
+            increasing = false;
+        } else if scores[i] < scores[i + 1] {
+            decreasing = false;
+        }
+    }
+
+    return increasing || decreasing;
+}
+
+
+pub fn main() {
+    let mut products = HashMap::new();
+
+    products.insert("product_1", vec![1, 2, 2, 3]);
+    products.insert("product_2", vec![4, 5, 6, 3, 4]);
+    products.insert("product_3", vec![8, 8, 7, 6, 5, 4, 4, 1]);
+
+    for (product_id, popularity) in products {
+        if popularity_analysis(popularity) {
+            println!("{} popularity is increasing or decreasing", product_id);
+        } else {
+            println!("{} popularity is fluctuating", product_id);
+        }
+    }
+}
+```
+- #### Output
+```shell
+product_1 popularity is increasing or decreasing
+product_2 popularity is fluctuating
+product_3 popularity is increasing or decreasing
+```
+- #### Explanation
+    - We have used a hash map to store the products and their popularity scores. We have then used a function to analyze the popularity scores. We have then printed the popularity analysis of each product.
+    - The `popularity_analysis` function checks if the popularity scores are increasing or decreasing. If the scores are increasing or decreasing, the function returns true. Otherwise, it returns false. In detail, the function checks if the popularity scores are increasing or decreasing by comparing the current score with the next score. If the current score is greater than the next score, the scores are decreasing. If the current score is less than the next score, the scores are increasing. If the scores are neither increasing nor decreasing, the scores are fluctuating.
