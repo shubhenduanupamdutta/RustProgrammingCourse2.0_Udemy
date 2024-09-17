@@ -255,3 +255,77 @@ pub fn main() {
 The overlapping timings are [[14, 15], [7, 9]]
 ```
 ---------------------------------------------------------
+## Longest Non-Stop Working Hours
+---------------------------------------------------------
+### Problem Statement - *Given time slots numbers, we want to determine the longest consecutive (non-stop) time slots.*
+### Data Structures and Patterns Used - *Vectors, Loops, HashSets*
+=========================================================
+- #### Real Life Scenario
+    - *Suppose we are working on a project with very tight time schedule. We want our employees to put some extra effort, to make sure that the employees spent their time productively, we have divided their time schedule in chunks of two hour slots. The first slot is **8-10** on Monday, the next slot is **10-12** on the same day and so on... We have numbered all the slots during the week. After each time slot we would like the employee to tell us what he has produced. The employees may decide to take some rest for some slots during the week. However, some of the employees may work too much in consecutive time slots and may negatively affect their all productivity and well being. __We would like to determine the employees who has worked non-stop for the longest time in some interval of time (let's say a week or a month), so that we can ask him to have some break.__ This is necessary for their overall well being.*
+- #### Implementation Detail
+    - **Assumption** - The input will be in the form of vector containing numbers indicating time slots, the numbers are not necessarily in order. We will be using hash sets to implement the solution.
+    - **Approach** - We will be using hash sets to store the time slots. We will then iterate over the hash set to find the longest consecutive time slots.
+    
+```rust
+use std::collections::HashSet;
+
+pub fn main() {
+    let schedule = vec![
+        vec![4, 1, 2, 5, 6, 10, 11],
+        vec![3, 1, 2, 5, 7, 10, 11, 14],
+        vec![3, 1, 15, 5, 13, 12, 10, 14, 15, 16, 17, 18, 8, 9],
+    ];
+
+    println!(
+        "Employee Number {} has the highest number of nonstop working hours",
+        longest_busy_time(schedule)
+    );
+}
+
+fn longest_busy_time(working_slots: Vec<Vec<u8>>) -> u8 {
+    let mut employee_longest_nonstop_work: Vec<u8> = Vec::new();
+    for employee in working_slots {
+        employee_longest_nonstop_work.push(longest_period(employee));
+    }
+    for i in 0..employee_longest_nonstop_work.len() {
+        println!(
+            "Employee {} has worked nonstop for {} slots",
+            i, employee_longest_nonstop_work[i]
+        );
+    }
+    let max_nonstop_work = employee_longest_nonstop_work.iter().max().unwrap();
+    employee_longest_nonstop_work
+        .iter()
+        .position(|&r| r == *max_nonstop_work)
+        .unwrap() as u8
+}
+
+fn longest_period(employee_slots: Vec<u8>) -> u8 {
+    let mut longest_busy_period = 0;
+
+    let slot_set = employee_slots.into_iter().collect::<HashSet<_>>();
+
+    for slot in &slot_set {
+        if !(slot_set.contains(&(slot - 1))) {
+            let mut current_slot = slot.to_owned();
+            let mut current_consecutive_slot = 1;
+            while slot_set.contains(&(current_slot + 1)) {
+                current_slot += 1;
+                current_consecutive_slot += 1;
+            }
+            if current_consecutive_slot > longest_busy_period {
+                longest_busy_period = current_consecutive_slot;
+            }
+        }
+    }
+    longest_busy_period
+}
+```
+- #### Output
+```shell
+Employee 0 has worked nonstop for 3 slots
+Employee 1 has worked nonstop for 3 slots
+Employee 2 has worked nonstop for 7 slots
+Employee Number 2 has the highest number of nonstop working hours
+```
+---------------------------------------------------------
