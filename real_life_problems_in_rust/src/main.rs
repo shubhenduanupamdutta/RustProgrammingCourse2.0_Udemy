@@ -2,7 +2,7 @@
 //          Real Life Problems with Data Structures in Rust
 //----------------------------------------------------------------
 
-use real_life_problems_in_rust::{highest_priced_stock, product_popularity, search_word_grouping};
+use real_life_problems_in_rust::{find_employee_no_meeting, highest_priced_stock, product_popularity, search_word_grouping};
 
 fn main() {
     println!("Real Life Problems with Data Structures in Rust");
@@ -19,4 +19,7 @@ fn main() {
     println!("3. Highest Priced Stock using MaxStacks, Structures, and Vectors");
     highest_priced_stock::main();
     
+    println!();
+    println!("4. Find an Employee with No Meeting using MultiDimensional Arrays, Nested Loops, and Conditional if");
+    find_employee_no_meeting::main();
 }

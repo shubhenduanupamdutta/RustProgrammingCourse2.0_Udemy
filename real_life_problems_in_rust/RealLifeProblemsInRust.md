@@ -200,3 +200,58 @@ Maximum value of stock: 140
 - #### Explanation
     - We have implemented a max stack to find the stock with the highest price in any week. We have then pushed the stock prices into the stack. We have then printed the maximum value of the stock. We have then popped the stock price from the stack and printed the maximum value of the stock.
 ---------------------------------------------------------
+## Finding an Employee with No Meeting
+---------------------------------------------------------
+### Problem Statement - *Given a list of employees and their meeting schedules, determine overlapping time.*
+### Data Structures and Patterns Used - *MultiDimensional Arrays, Nested Loops, Conditional Statements*
+=========================================================
+- #### Real Life Scenario
+    - *Consider an office environment where there is a boss and he has two secretaries. He needs services of these secretaries from time to time. The secretaries are also involved in other activities and therefore has their own schedule of meetings. Some of the meetings of the secretaries may be overlapping. The boss wants to know the time slots in which both the secretaries may be busy, that is, both have meetings. This will help him in finding out a time slot in which at least one of the secretaries will be free so that some task may be assigned to them*
+- #### Implementation Detail
+    - **Assumption** - The meeting schedule for the two secretaries are given to us in the form of vectors. Each meeting is associated with the start and end time, which is also given in the form of vectors. Times are in 24 hours system for simplicity.
+    - **Approach** - We will be using nested loops and conditional statements to implement the solution.
+```rust
+use std::cmp;
+
+fn overlapping_meetings(meetings_a: Vec<Vec<i32>>, meetings_b: Vec<Vec<i32>>) -> Vec<Vec<i32>> {
+    let mut overlaps: Vec<Vec<i32>> = Vec::new();
+    for i in 0..meetings_a.len() {
+        for j in 0..meetings_b.len() {
+            let (start_a, start_b) = (meetings_a[i][0], meetings_b[j][0]);
+            let (end_a, end_b) = (meetings_a[i][1], meetings_b[j][1]);
+
+            let overlap_status = overlap(start_a, start_b, end_a, end_b);
+            if overlap_status.is_some() {
+                overlaps.push(overlap_status.unwrap());
+            }
+        }
+    }
+
+    overlaps
+}
+
+fn overlap(start_a: i32, start_b: i32, end_a: i32, end_b: i32) -> Option<Vec<i32>> {
+    let mut intersection_time = Vec::new();
+    // Calculating overlaps
+    if cmp::max(start_a, start_b) < cmp::min(end_a, end_b) {
+        intersection_time.push(cmp::max(start_a, start_b));
+        intersection_time.push(cmp::min(end_a, end_b));
+        Some(intersection_time)
+    } else {
+        None
+    }
+}
+
+pub fn main() {
+    let meeting_sec_a: Vec<Vec<i32>> = vec![vec![13, 15], vec![15, 16], vec![7, 9]];
+    let meeting_sec_b: Vec<Vec<i32>> = vec![vec![14, 15], vec![5, 10]];
+    
+    let intersection = overlapping_meetings(meeting_sec_a, meeting_sec_b);
+    println!("The overlapping timings are {:?}", intersection);
+}
+```
+- #### Output
+```shell
+The overlapping timings are [[14, 15], [7, 9]]
+```
+---------------------------------------------------------
