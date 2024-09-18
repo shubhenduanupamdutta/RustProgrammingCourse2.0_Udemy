@@ -370,3 +370,107 @@ fn product_suggestions(product_prices: Vec<i32>, amount: i32) -> Vec<Vec<i32>> {
 ```
 - #### Explanation
     - We are iterating over product prices and calculating the difference between the target price and the current price. If the difference is not present in the hash set, we are inserting the current price into the hash set. If the difference is present in the hash set, we are pushing the current price and the difference into the offers vector, because we know if any price is present in the hash set, it is price of some other product which can be bought with the current product to make the total price equal to the target price.
+---------------------------------------------------------
+## Items in Range
+---------------------------------------------------------
+### Problem Statement - *Given a list of items and a range, return the items that fall within the price range.*
+### Data Structures and Patterns Used - *Binary Search Trees, Box Pointers, Vectors*
+=========================================================
+- #### Real Life Scenario
+    - *Consider a business where many products are available for purchase, the customer are frequently interested in determining the products which are in some price range. Since there are too many products with lots and lots of data, the company wants to quickly retrieve this information. Therefore they would like to have a suitable data structure for storing the product price information, which will enable quick retrieval of the requested information. As consultant of business we recommend __binary search tree__ for efficient storage and quick retrieval.*
+- #### Implementation Detail
+    - **Assumption** - We are given a list of items and a price range. 
+    - **Approach** - We will be using binary search trees to implement the solution.
+=========================================================
+#### Tree
+- **Tree** is a collection of **nodes**. **Nodes** are connected by **edges**. Each **node** contains a **value** or **data**, and it may or may not have a **child node**. The **topmost node** is called the **root node**. The **nodes** that have **child nodes** are called **internal nodes**. The **nodes** that do not have **child nodes** are called **leaf nodes**. The **edges** that connect the **nodes** are called **branches**. The **height** of a **tree** is the **length of the longest path** to a **leaf node**. The **depth** of a **node** is the **length of the path** to the **root node**. The **depth** of the **root node** is **0**. The **height** of a **tree** is **1** more than the **depth** of the **deepest node**.
+#### Binary Tree
+- A **binary tree** is a **tree** in which each **node** has **at most two children**, which are referred to as the **left child** and the **right child**.
+- **Binary Search Tree** is a **binary tree** in which the **left child** of a **node** contains only **nodes** with **values** less than the **node's value**, and the **right child** of a **node** contains only **nodes** with **values** greater than the **node's value**.
+- The *left* and *right* subtree each must also be a binary search tree themselves.
+=========================================================
+```rust
+#[derive(Clone)]
+struct Node {
+    value: i32,
+    left: Option<Box<Node>>,
+    right: Option<Box<Node>>,
+}
+
+impl Node {
+    fn new(value: i32) -> Self {
+        Node {
+            value,
+            left: None,
+            right: None,
+        }
+    }
+
+    fn insert(&mut self, val: i32) {
+        if val > self.value {
+            match self.right {
+                None => self.right = Some(Box::new(Node::new(val))),
+                Some(ref mut node) => node.insert(val),
+            }
+        } else {
+            match self.left {
+                None => self.left = Some(Box::new(Node::new(val))),
+                Some(ref mut node) => node.insert(val),
+            }
+        }
+    }
+}
+
+struct BinarySearchTree {
+    root: Node,
+}
+
+fn traversal(node: Option<Box<Node>>, low: i32, high: i32, mut output: &mut Vec<i32>) {
+    if node.is_some() {
+        // Calling with as_ref() to avoid moving the value out of the Option
+        if node.as_ref().unwrap().value >= low && node.as_ref().unwrap().value <= high {
+            output.push(node.as_ref().unwrap().value);
+        }
+        if node.as_ref().unwrap().value >= low {
+            traversal(node.as_ref().unwrap().left.clone(), low, high, &mut output);
+        }
+        if node.as_ref().unwrap().value <= high {
+            traversal(node.as_ref().unwrap().right.clone(), low, high, &mut output);
+        }
+    }
+}
+
+fn products_in_range(root: Node, low: i32, high: i32) -> Vec<i32> {
+    let mut output = Vec::new();
+    traversal(Some(Box::new(root)), low, high, &mut output);
+    output
+}
+
+pub fn main() {
+    let product_prices = vec![9, 6, 14, 20, 1, 30, 8, 17, 5];
+
+    let mut bst = BinarySearchTree {
+        root: Node::new(product_prices[0]),
+    };
+
+    for i in 1..product_prices.len() {
+        bst.root.insert(product_prices[i]);
+    }
+
+    let result = products_in_range(bst.root, 7, 20);
+    println!("Products in range {:?}", result);
+}
+```
+- #### Output
+```bash
+Products in range [9, 8, 14, 20, 17]
+```
+- #### Explanation
+    - We have implemented a binary search tree to store the product prices. We have then inserted the product prices into the binary search tree. We have then found the products in the price range 7 to 20 using `products_in_range` function.
+    - `products_in_range` function takes the root of the binary search tree, the lower limit of the price range, and the upper limit of the price range as input. It then traverses the binary search tree and finds the products in the price range using the `traversal` function.
+    - `traversal` function takes the node of the binary search tree, the lower limit of the price range, the upper limit of the price range, and the output vector as input. It then traverses the binary search tree and finds the products in the price range, using three conditions:
+        - If the value of the node is greater than or equal to the lower limit and less than or equal to the upper limit, the value of the node is pushed into the output vector.
+        - If the value of the node is greater than or equal to the lower limit, the left child of the node is traversed.
+        - If the value of the node is less than or equal to the upper limit, the right child of the node is traversed.
+---------------------------------------------------------
+
