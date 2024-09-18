@@ -329,3 +329,44 @@ Employee 2 has worked nonstop for 7 slots
 Employee Number 2 has the highest number of nonstop working hours
 ```
 ---------------------------------------------------------
+## Items Suggestions
+---------------------------------------------------------
+### Problem Statement - *Given a list of prices, return a couple of items with their sum matching the target price.*
+### Data Structures and Patterns Used - *HashMap, Vectors, Loops*
+=========================================================
+- #### Real Life Scenario
+    - *There is an online shopping business who recently held a lucky draw contest where thousands of people participated. The ones who were successful have been given a $50 shopping gift card which can be used to buy items from the online store. There is however a restriction from business that the customers can only buy two products at most. Now we want to help the customers by suggesting a list of triplets that contains products worth $50 exactly, so that they are not worried from paying the extra from their own pockets. In other words, we want to suggest package deals containing two products that sum up to $50, and we want to suggest as many such possibilities as there may exist to implement the feature, we will have access to a list of products that the customer is likely to buy. These products will include products from the person wish list and other products based on the previous purchases. Our job is to return the possible pair of products whose sum is $50.*
+- #### Implementation Detail
+    - **Assumption** - We are given a list of prices (as vectors in Rust). And prices value does not repeat.
+    - **Approach** - We will be using hash sets and loops to implement the solution.
+
+```rust
+use std::collections::HashSet;
+
+pub fn main() {
+    let product = vec![11, 30, 55, 34, 45, 10, 19, 20, 60, 5, 23];
+    println!("{:?}", product_suggestions(product, 50));
+}
+
+fn product_suggestions(product_prices: Vec<i32>, amount: i32) -> Vec<Vec<i32>> {
+    let mut prices_hash = HashSet::new();
+    let mut offers = Vec::new();
+
+    for price in product_prices {
+        let diff = amount - price;
+        if !prices_hash.contains(&diff) {
+            prices_hash.insert(price);
+        } else {
+            offers.push(vec![price, diff]);
+        }
+    }
+
+    offers
+}
+```
+- #### Output
+```shell
+[[30, 20], [45, 5], [10, 40]]
+```
+- #### Explanation
+    - We are iterating over product prices and calculating the difference between the target price and the current price. If the difference is not present in the hash set, we are inserting the current price into the hash set. If the difference is present in the hash set, we are pushing the current price and the difference into the offers vector, because we know if any price is present in the hash set, it is price of some other product which can be bought with the current product to make the total price equal to the target price.

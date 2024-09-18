@@ -2,7 +2,7 @@
 //          Real Life Problems with Data Structures in Rust
 //----------------------------------------------------------------
 
-use real_life_problems_in_rust::{find_employee_no_meeting, highest_priced_stock, longest_non_stop_working_hours, product_popularity, search_word_grouping};
+use real_life_problems_in_rust::{find_employee_no_meeting, highest_priced_stock, items_suggestions, longest_non_stop_working_hours, product_popularity, search_word_grouping};
 
 fn main() {
     println!("Real Life Problems with Data Structures in Rust");
@@ -26,4 +26,8 @@ fn main() {
     println!();
     println!("5. Longest Non-Stop Working Hours using HashSet, Vectors and Loops");
     longest_non_stop_working_hours::main();
+
+    println!();
+    println!("6. Items Suggestions using HashMap and Vectors");
+    items_suggestions::main();
 }
