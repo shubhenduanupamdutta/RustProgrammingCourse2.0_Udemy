@@ -2,7 +2,7 @@
 //          Real Life Problems with Data Structures in Rust
 //----------------------------------------------------------------
 
-use real_life_problems_in_rust::{find_employee_no_meeting, highest_priced_stock, items_in_range, items_suggestions, longest_non_stop_working_hours, product_popularity, search_word_grouping};
+use real_life_problems_in_rust::{fetching_top_products, find_employee_no_meeting, highest_priced_stock, items_in_range, items_suggestions, longest_non_stop_working_hours, product_popularity, search_word_grouping};
 
 fn main() {
     println!("Real Life Problems with Data Structures in Rust");
@@ -34,4 +34,8 @@ fn main() {
     println!();
     println!("7. Items in Range using Binary Search, Vectors, and Loops");
     items_in_range::main();
+
+    println!();
+    println!("8. Fetching Top Products using LinkedList, Iterators, and Loops");
+    fetching_top_products::main();
 }
