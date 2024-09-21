@@ -650,3 +650,100 @@ Consolidated List:
     - We have then implemented a function to sort the linked lists and consolidate them into a single linked list. We have then printed the consolidated linked list.
     - We have then reversed the consolidated linked list to get the top products in ascending order. We have then printed the reversed consolidated linked list.
 ---------------------------------------------------------
+## Efficient Storage and Retrieval of Words
+---------------------------------------------------------
+### Problem Statement - *Given a list of words, store them in a data structure and retrieve them efficiently.*
+### Data Structures and Patterns Used - *Trie, HashMaps, Vectors*
+=========================================================
+#### Real Life Scenario
+- *Consider a business case where we are involved in designing a module for search engine system that will enable efficient storage and retrieval of words. This module will act as a dictionary with insert and search functionalities. We would like to do search with a blazing fast speed. Since the speed is crucial to success of the system, we will implement the solution using `Trie` data structure.*
+=========================================================
+#### Trie
+- `Trie` data structure is also known as digital tree or prefix tree. It is a type of _k_ array search tree which is used for locating specific keys from within a set. These keys are most often strings with links between nodes defined not by the entire key but by individual.
+
+- It is a tree data structure used for efficient retrieval of a key in a large set of strings. A `Trie` is a tree where each node represents a single character of a string. The root node represents an empty string. Each node has a map of characters to child nodes. The nodes at the end of the tree represent the strings in the `Trie`.
+=========================================================
+- #### Implementation Detail
+    - **Assumption** - We are given a list of words. We will be using a `Trie` data structure to store the words.
+    - **Approach** - We will be using a `Trie` data structure to store the words. We will then implement the insert and search functionalities. We will also use a hash map to store the child nodes of the `Trie`.
+```rust
+use std::collections::HashMap;
+
+#[derive(Debug, Default, PartialEq, Eq, Clone)]
+struct Node {
+    children: HashMap<char, Node>,
+    is_word: bool,
+}
+
+impl Node {
+    fn new() -> Self {
+        Node {
+            is_word: false,
+            children: HashMap::new(),
+        }
+    }
+}
+
+#[derive(Debug, Default, PartialEq, Eq, Clone)]
+struct WordDictionary {
+    root: Node,
+}
+
+impl WordDictionary {
+    fn new() -> Self {
+        Self::default()
+    }
+
+    fn insert(&mut self, word: &String) {
+        let mut current = &mut self.root;
+        for w in word.chars() {
+            current = current.children.entry(w).or_insert(Node::new())
+        }
+
+        if !current.is_word {
+            current.is_word = true;
+        }
+    }
+
+    fn search(&self, word: &String) -> bool {
+        let mut current = &self.root;
+        for w in word.chars() {
+            if current.children.get(&w).is_some() {
+                current = current.children.get(&w).unwrap();
+            } else {
+                return false;
+            }
+        }
+
+        current.is_word
+    }
+}
+
+pub fn main() {
+    let words = vec![
+        "the", "a", "there", "answer", "any", "by", "bye", "their", "abc", "abstract",
+    ];
+    let words = words
+        .into_iter()
+        .map(|word| word.to_string())
+        .collect::<Vec<String>>();
+
+    let mut d = WordDictionary::new();
+    for word in words {
+        d.insert(&word);
+    }
+
+    println!("Searching `there` in the dictionary result: {}", d.search(&"there".to_string()));
+    println!("Searching `them` in the dictionary result: {}", d.search(&"them".to_string()));
+    println!("Searching `ther` in the dictionary result: {}", d.search(&"ther".to_string()));
+}
+```
+- #### Output
+```shell
+Searching `there` in the dictionary result: true
+Searching `them` in the dictionary result: false
+Searching `ther` in the dictionary result: false
+```
+- #### Explanation
+    - We have implemented a `Trie` data structure to store the words. We have then inserted the words into the `Trie`. We have then searched for the words in the `Trie` using the `search` function.
+    - The `insert` function takes a word as input and inserts the word into the `Trie`. The `search` function takes a word as input and searches for the word in the `Trie`. It returns true if the word is present in the `Trie` and false otherwise.

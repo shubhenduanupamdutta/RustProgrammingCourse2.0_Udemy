@@ -6,3 +6,4 @@ pub mod longest_non_stop_working_hours;
 pub mod items_suggestions;
 pub mod items_in_range;
 pub mod fetching_top_products;
+pub mod storage_retrieval;
