@@ -3,7 +3,7 @@
 //----------------------------------------------------------------
 
 use real_life_problems_in_rust::{
-    fetching_top_products, find_employee_no_meeting, highest_priced_stock, items_in_range, items_suggestions, longest_non_stop_working_hours, product_popularity, recently_used, search_word_grouping, storage_retrieval
+    fetching_top_products, find_employee_no_meeting, highest_priced_stock, items_in_range, items_suggestions, longest_non_stop_working_hours, participants_online, product_popularity, recently_used, search_word_grouping, storage_retrieval
 };
 
 fn main() {
@@ -48,4 +48,8 @@ fn main() {
     println!();
     println!("10. Most Recently Used Product using HashMaps and Doubly Linked Lists");
     recently_used::main();
+
+    println!();
+    println!("11. Displaying Participants of an Online Meeting using BST and Stack");
+    participants_online::main();
 }

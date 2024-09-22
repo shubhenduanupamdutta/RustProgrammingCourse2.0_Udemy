@@ -988,3 +988,187 @@ List is full. Remove the head node and add the new node to the tail
 Removing product `20` from the list
 After purchasing product `15`   : None <- |10| <-> |25| <-> |15| -> None
 ```
+---------------------------------------------------------
+## Displaying Participants of an Online Meeting
+---------------------------------------------------------
+### Problem Statement - *Retrieve list of paginated view of the list of participants in an online meeting.*
+### Data Structures and Patterns Used - *Breadth Search Tree (BST) and Stack*
+=========================================================
+#### Real Life Scenario
+- *Consider a business which has a software for conducting online meetings of its employees, the company wants to keep track and display the list of participants attending the meeting using a suitable data structure. The company wants the names of attendees in a meeting to be displayed in alphabetical order. The attendees can join or leave a meeting at random, so the underlying data structure should allow for easy adaption accordingly. After analyzing the problem, the designer has agreed that the name of the attendees should be stored using a binary search tree. Once the names are stored, the company is further interested in a special mode of display called gallery mode. This display will allow the names of the participants to be shown in paginated form that is divided into pages that can be scrolled down.*
+#### Implementation Detail
+- **Assumption** - In this scenario, we will assume that only 10 participants can be shown on one page.
+- **Approach** - We will use binary search tree (BST) containing the names of the participants and implement the pagination. Whenever our function is called, it will return the next 10 participants in alphabetical order.
+    - `push_all_left()` - When called for a node, will always push the left nodes of that node onto a stack.
+    - `next_name()`
+        - Will return the next name (alphabetical) from the tree.
+        - It will be called 10 times.
+        - It does two things,
+            - Remove the top element from the stack.
+            - will call `push_all_left()` on the right child of the removed element.
+    - `next_page()` - It will call `next_name()` 10 times and return the names.
+```rust
+use std::cell::RefCell;
+use std::rc::Rc;
+
+#[derive(Debug, Default, PartialEq, Eq, Clone)]
+struct Node {
+    val: String,
+    left: Link,
+    right: Link,
+}
+
+type Link = Option<Rc<RefCell<Node>>>;
+
+impl Node {
+    fn new(val: String) -> Self {
+        Node {
+            val,
+            right: None,
+            left: None,
+        }
+    }
+
+    fn insert(&mut self, val: String) {
+        if val > self.val {
+            match &self.right {
+                None => {
+                    self.right = Some(Rc::new(RefCell::new(Node::new(val))));
+                }
+                Some(node) => {
+                    node.borrow_mut().insert(val);
+                }
+            }
+        } else {
+            match &self.left {
+                None => {
+                    self.left = Some(Rc::new(RefCell::new(Node::new(val))));
+                }
+                Some(node) => {
+                    node.borrow_mut().insert(val);
+                }
+            }
+        }
+    }
+}
+
+#[derive(Debug, Default, PartialEq, Eq)]
+struct BinarySearchTree {
+    root: Node,
+}
+
+impl BinarySearchTree {
+    fn new(val: String) -> Self {
+        BinarySearchTree {
+            root: Node::new(val),
+        }
+    }
+
+    fn insert(&mut self, val: String) {
+        self.root.insert(val);
+    }
+}
+
+struct DisplayLobby {
+    stack: Vec<Rc<RefCell<Node>>>,
+}
+
+impl DisplayLobby {
+    fn new(root: Link) -> Self {
+        let mut stack = Vec::new();
+        Self::push_all_left(root, &mut stack);
+        DisplayLobby { stack }
+    }
+
+    fn push_all_left(mut p: Link, stack: &mut Vec<Rc<RefCell<Node>>>) {
+        while let Some(link) = p.clone() {
+            stack.push(p.clone().unwrap());
+            p = link.borrow().left.clone();
+        }
+    }
+
+    fn next_name(&mut self) -> String {
+        let node = self.stack.pop().unwrap();
+        let name = &node.borrow().val;
+        let next_node = node.borrow().right.clone();
+        Self::push_all_left(next_node, &mut self.stack);
+        name.to_string()
+    }
+
+    fn next_page(&mut self) -> Vec<String> {
+        let mut next_names = Vec::new();
+        for _ in 0..10 {
+            if !self.stack.is_empty() {
+                next_names.push(self.next_name());
+            } else {
+                break;
+            }
+        }
+        next_names
+    }
+}
+
+pub fn main() {
+    let mut bst = BinarySearchTree::new("Jeanette".to_string());
+    let names = vec![
+        "Latasha",
+        "Elvira",
+        "Caryl",
+        "Antionetter",
+        "Cassie",
+        "Charity",
+        "Lyn",
+        "Lia",
+        "Anya",
+        "Albert",
+        "Cherlyn",
+        "Lala",
+        "Kandince",
+        "Iliana",
+        "Dutta",
+        "Shubhendu",
+    ];
+
+    names.into_iter().for_each(|name| {
+        bst.insert(name.to_string());
+    });
+
+    let mut display = DisplayLobby::new(Some(Rc::new(RefCell::new(bst.root))));
+    println!("Participants on the first page: \n{:#?}", display.next_page());
+
+    println!();
+    println!("Participants on the second page: \n{:#?}", display.next_page());
+}
+```
+- #### Output
+```shell
+Participants on the first page:
+[
+    "Albert",
+    "Antionetter",
+    "Anya",
+    "Caryl",
+    "Cassie",
+    "Charity",
+    "Cherlyn",
+    "Dutta",
+    "Elvira",
+    "Iliana",
+]
+
+Participants on the second page: 
+[
+    "Jeanette",
+    "Kandince",
+    "Lala",
+    "Latasha",
+    "Lia",
+    "Lyn",
+    "Shubhendu",
+]
+```
+- #### Explanation
+    - We have implemented a binary search tree to store the names of the participants. We have then inserted the names into the binary search tree. We have then implemented a `DisplayLobby` struct to display the names of the participants in paginated form.
+    - The `DisplayLobby` struct has a stack to store the nodes of the binary search tree. It has a `push_all_left` function to push all the left nodes of a node onto the stack. It has a `next_name` function to return the next name from the stack. It has a `next_page` function to return the next 10 names from the stack.
+    - We have then created a `DisplayLobby` object and displayed the names of the participants in paginated form.
+---------------------------------------------------------
