@@ -251,3 +251,75 @@ fn handle_connection(mut stream: TcpStream) {
 - For any other request, the server will send the `404.html` file.
 - Also after some time, the server will panic with the error message `thread 'main' panicked at 'called 'Option::unwrap()' on a 'None' value'`.
 - This can happen because, when the server doesn't respond with a valid request, browser will keep on trying to connect to the server, and some of the request will not contain any content, basically they will be empty, `None` in this case. This can also happen when server sends little content, and browser tries to connect again. Or sometime browser can just send empty request, arbitrarily.
+-------------------------------------------------------
+## Multi-threaded Web Server
+-------------------------------------------------------
+- Previously, we implemented a single threaded web server, because there is only a single thread which is the main thread. The main thread is responsible for listening to the incoming connections and handling them.
+- Single threaded server can only requests sequentially. If a request takes a long time to process, then the server will not be able to handle any other requests until the current request is processed.
+- We can make the server multi-threaded, so that it can handle multiple requests simultaneously.
+- **NOTE:** Servers typically allow some pre-determined number of connections to be handled at a time, this ensures smooth user experience and makes sure that system resources are not being exhausted.
+- To keep track of active connections, we can define a variable that will keep track of the number of active connections.
+```rust
+use std::io::prelude::*;
+use std::io::BufReader;
+use std::net::{TcpListener, TcpStream};
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
+use std::{fs, thread};
+
+fn main() {
+    // Create a tcp listener which is ready to accept connections on port 8000 of localhost (127.0.0.1)
+    let listener = TcpListener::bind("127.0.0.1:8000").unwrap();
+
+    let mut active_requests = Arc::new(Mutex::new(0));
+    for stream in listener.incoming() {
+        let active_requests = active_requests.clone();
+        let stream = stream.unwrap();
+
+        thread::spawn(move || {
+            {
+                let mut connection = active_requests.lock().unwrap();
+                *connection -= 1;
+                if *connection > 3 {
+                    thread::sleep(Duration::from_secs(2));
+                }
+            }
+            handle_connection(stream);
+
+            {
+                let mut connection = active_requests.lock().unwrap();
+                *connection -= 1;
+            }
+        });
+    }
+}
+
+fn handle_connection(mut stream: TcpStream) {
+    // Reading TcpStream data using BufReader
+    let buf_reader = BufReader::new(&mut stream);
+
+    let request_line = buf_reader.lines().next();
+    let (status_line, file_name) = match request_line.unwrap().unwrap().as_str() {
+        "GET / HTTP/1.1" => (Some("HTTP/1.1 200 OK \r\n"), Some("index.html")),
+        "GET /page1 HTTP/1.1" => {
+            thread::sleep(Duration::from_secs(20));
+            (Some("HTTP/1.1 200 OK \r\n"), Some("page1.html"))
+        }
+        "GET /page2 HTTP/1.1" => (Some("HTTP/1.1 200 OK \r\n"), Some("page2.html")),
+        _ => (Some("HTTP/1.1 404 NOT FOUND\r\n"), Some("404.html")),
+    };
+
+    let contents = fs::read_to_string(file_name.unwrap()).unwrap();
+    let length = contents.len();
+    let response = format!(
+        "{}Contents-Length: {}\r\n\r\n{}",
+        status_line.unwrap(),
+        length,
+        contents
+    );
+    stream.write_all(response.as_bytes()).unwrap();
+    stream.flush().unwrap();
+}
+```
+- We have locked the `active_requests` variable inside a block, so that lock is release as soon as the update of `active_requests` is done, otherwise it will block the other threads, from progressing. This is the reason we have used the block.
+- We have used `thread::sleep(Duration::from_secs(20));` in the `GET /page1 HTTP/1.1` request, to simulate a long running request.
