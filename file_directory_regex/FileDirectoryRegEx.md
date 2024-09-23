@@ -100,3 +100,112 @@ pub fn main() {
 }
 ```
 - We can call `file_handling()` function from `main()` function to run the code.
+-------------------------------------------------------
+## Directory and Path Related Functions
+-------------------------------------------------------
+### Path Related Functions
+=======================================================
+- We can use `r` before a string to make it a raw string, which means that the string will not be escaped when `\` is used.
+- `path = Path::new(r"D:\PersonalProjects\Examples")` creates a new path object.
+- To get parent directory of a path, we can use `path.parent()` function. Which returns an `Option<&Path>` type, and we can use `unwrap()` to get the value.
+- We can get the file name from a path using `path.file_name()` function. Which returns an `Option<&OsStr>` type, and we can use `unwrap()` to get the value.
+- We can also get the extension of a file using `path.extension()` function. Which returns an `Option<&OsStr>` type, and we can use `unwrap()` to get the value.
+- `path.file_stem()` function returns the file name without the extension. Which returns an `Option<&OsStr>` type, and we can use `unwrap()` to get the value.
+- We can create directory, subdirectory using `PathBuf` and `push` function.
+- You can also use vector, iterators and `collect::<PathBuf>()` to create a `PathBuf` object.
+- `path.is_dir()` function checks if the path is a directory or not.
+- `path.is_file()` function checks if the path is a file or not.
+- `path.exists()` function checks if the path exists or not.
+- `path.metadata()` function returns the metadata of the file or directory, in the form of a `Result` type.
+- After getting the `metadata` we can use the data obtained and get individual information like file size, creation time, modification time etc.
+```rust
+fn path_related_functions() {
+    let path = Path::new(r"D:\PersonalProjects\Examples\my_text.txt");
+    
+    println!();
+    println!("Getting File Metadata");
+    // Getting parent directory
+    println!("Parent directory of {:?} is {:?}", path, path.parent().unwrap());
+
+    // Getting file name without extension
+    println!("File name of {:?} is {:?}", path, path.file_stem().unwrap());
+
+    // Getting file extension
+    println!("Extension of {:?} is {:?}", path, path.extension().unwrap());
+
+    // Getting the full file name
+    println!("File name of {:?} is {:?}", path, path.file_name().unwrap());
+
+    // Creating directories
+    println!();
+    println!("Creating directories");
+    let mut dir_path = PathBuf::from(r"D:\PersonalProjects\Examples\NewDir");
+    dir_path.push(r"Rust");
+    dir_path.push(r"Examples");
+    dir_path.push(r"MyFile");
+    dir_path.set_extension("txt");
+    println!("Full File Path created: {:?}", dir_path);
+
+    // We can also do the same using iterators and vectors
+    println!();
+    println!("Creating directories using iterators and vectors");
+    let paths = [r"D:\PersonalProjects\Examples\NewDir", r"Rust", r"Examples", r"MyFile.txt"];
+
+    let new_path = paths.into_iter().collect::<PathBuf>();
+    println!("Full File Path created: {:?}", new_path);
+
+    // Checking if a file or directory exists
+    println!();
+    println!("Checking if a file or directory exists");
+    println!("Checking if {:?} exists: {:?}", dir_path, dir_path.exists());
+
+    println!("Checking if {:?} exists: {:?}", path, path.exists());
+
+    println!("Checking if {:?} is a file: {:?}", dir_path, dir_path.is_file());
+
+    println!("Checking if {:?} is a file: {:?}", path, path.is_file());
+
+    println!("Checking if {:?} is a directory: {:?}", dir_path, dir_path.is_dir());
+
+    println!("Checking if {:?} is a directory: {:?}", path.parent().unwrap(), path.parent().unwrap().is_dir());
+
+    // Getting metadata
+    println!();
+    println!("Getting metadata of file and directory");
+    let file_path = path;
+    let dir_path = path.parent().unwrap();
+
+    println!("Metadata of {:?} is {:#?}", file_path, file_path.metadata().unwrap());
+    println!("Metadata of {:?} is {:#?}", dir_path, dir_path.metadata().unwrap());
+
+    // Getting metadata attributes
+    let file_metadata = file_path.metadata().unwrap();
+    println!("Type of {:?} is {:?}", file_path, file_metadata.file_type());
+    println!("Length of {:?} is {:?}", file_path, file_metadata.len());
+    println!("Permissions of {:?} are {:?}", file_path, file_metadata.permissions());
+    println!("Created time of {:?} is {:?}", file_path, file_metadata.created().unwrap());
+    println!("Modified time of {:?} is {:?}", file_path, file_metadata.modified().unwrap());
+}
+```
+=======================================================
+### Directory Related Functions
+=======================================================
+- `path = Path::new(r"D:\")` creates a new path object.
+- We can use `path.read_dir()` function to read the contents of a directory. It returns a `Result` type, which contains a `DirEntry` type.
+- We can use `dir_entry.file_name()` function to get the file name from the `DirEntry` type.
+- We can call `unwrap()` and `path()` functions to get the file name as a `PathBuf` type from `Result` obtained from `read_dir()` function.
+- We can get current directory using `std::env::current_dir()` function, which returns a `Result` type containing a `PathBuf` type.
+- We can create a new directory using `std::fs::create_dir()` function. It returns a `Result` type.
+- To create a directory with `create_dir()` function, parent directories should exist. If they don't exist, we can use `create_dir_all()` function, it will create all the parent directories.
+
+=======================================================
+### Removing Files and Directories
+=======================================================
+- To remove a directory we can use `std::fs::remove_dir()` function. It returns a `Result` type. It will not work if the directory is not empty.
+- `std::fs::remove_dir_all()` function can be used to remove a directory and all its contents. It returns a `Result` type. It will remove all the contents of the directory and then remove the directory.
+- We can use `std::fs::remove_file()` function to remove a file. It returns a `Result` type.
+- We can rename a file using `std::fs::rename()` function. It returns a `Result` type.
+=======================================================
+### Copying Files and Directories
+=======================================================
+- We can use `std::fs::copy()` function to copy a file. It returns a `Result` type.
