@@ -209,3 +209,83 @@ fn path_related_functions() {
 ### Copying Files and Directories
 =======================================================
 - We can use `std::fs::copy()` function to copy a file. It returns a `Result` type.
+-------------------------------------------------------
+## Regular Expressions Basics
+-------------------------------------------------------
+- Regular expressions are a powerful tool for text processing. They are used to search, replace, and extract text based on a pattern.
+- We have two inputs, one is the text we want to search in, and the other is the pattern (RegEx) we want to search for.
+- Output is the text that matches the pattern.
+- `RegEx` is usually provided in many programming language as standard library, like in Python, Java etc.
+- But in Rust, we have to use `regex` crate to use regular expressions, since the intention in Rust is to keep standard library minimal.
+- We add `regex` crate in `Cargo.toml` file as
+- Then we can use `regex` crate in our code as
+```rust
+use regex::Regex;
+
+pub fn main() {
+    let re = Regex::new(r"[prt]ain").unwrap();
+}
+```
+- `Regex::new()` function is used to create a new `Regex` object. It returns a `Result` type, so we can use `unwrap()` to get the value. It will return and error if the pattern is not valid.
+- There are many constructs in regular expression. But the most fundamental one is called `character class`. It is a set of characters enclosed in square brackets `[]`. It matches any one of the characters in the set.
+- In our case `[prt]ain` will match `pain`, `rain` and `tain`. We are looking words that contain, either `p`, `r` or `t` followed mandatorily by `ain`.
+- We can use `is_match()` function to check if the pattern matches the text or not.
+- `.find()` function can be used to find the first occurrence of the pattern in the text.
+- `.find_iter()` function can be used to find all the occurrences of the pattern in the text.
+- `.capture_iter()` function can be used to capture the groups in the pattern, it finds successive non-overlapping matches.
+```rust
+use regex::Regex;
+
+pub fn main() {
+    let re = Regex::new(r"[prt]ain").unwrap();
+
+    let text = "rrain spain none";
+    println!("The text: {:?}\nhas a match: {:?}", text, re.is_match(text));
+
+    println!();
+    println!("Finding all matches in the text:");
+    for mat in re.find_iter(text) {
+        println!("Found: {:?}", mat.as_str());
+    }
+
+    println!("Finding first match in the text:");
+    if let Some(mat) = re.find(text) {
+        println!("Found: {:?}", mat.as_str());
+    }
+
+    println!();
+    println!("Finding all matches in the text using captures:");
+    for cap in re.captures_iter(text) {
+        println!("Found: {:?}", &cap.get(0).unwrap().as_str());
+    }
+}
+```
+- `.` the dot in regex will match a single character, including letters and digits. Dots should not be used inside character classes.
+- `*` the star in regex will match zero or more occurrences of the preceding character. It is a quantifier.
+- `+` the plus in regex will match one or more occurrences of the preceding character. It is a quantifier.
+- We can use `regex` to match spellings where there are multiple spellings can be correct, such as gray/grey, color/colour etc.
+- `let re = Regex::new(r"gr[ae]y").unwrap();` will match both `gray` and `grey`.
+=======================================================
+### Character Ranges
+=======================================================
+- Character ranges are used to check if character in certain range is part of text or not.
+- We can use `-` to specify a range of characters.
+- For instance, for all lowercase characters, we can use `[a-z]`, for all uppercase characters, we can use `[A-Z]`, for all digits, we can use `[0-9]`.
+- We can use multiple ranges inside a character class.
+- We can also use `^` inside a character class to negate the character class.
+- Some shorthands for frequently used character classes
+    - `\d` for `[0-9]`
+    - `\D` for `[^0-9]`
+    - `\w` for `[a-zA-Z0-9_]`
+    - `\W` for `[^a-zA-Z0-9_]`
+    - `\s` for space
+- `^` outside a character class is used to match the start of a line. Inside the character class it has meaning of negation.
+- `$` is used to match the end of a line.
+=======================================================
+### Word Boundaries
+=======================================================
+- `\b` is used to match word boundaries. It is a zero-width assertion. It is a meta-character. It will match at three places,
+    - Before the start in the input text, before any input character
+    - At the end of the input text after there is no character and 
+    - Between two characters if first is a word character and second is not a word character.
+- It doesn't match any character, it matches a position.
