@@ -415,3 +415,50 @@ fn main() {
 - We can use `&cap[0]` to get the whole match, and `&cap[1]`, `&cap[2]` and `&cap[3]` to get the year, month and day respectively, from the text.
 - `&cap[i]` is used to get the `i-th` capture group from the text.
 -------------------------------------------------------
+# String Literals
+-------------------------------------------------------
+- Sometimes you may encounter many double quotes inside a string. In such cases, to make the `"` part of string, we can use `\"` to escape the double quote.
+- If we have many quotes and double quotes in a string, it becomes annoying and error-prone to escape all the quotes. In such cases, we can use `r#` before the string to make it a raw string.
+```rust
+fn main() {
+    let s = r#"This is a "raw" string"#;
+    println!("{}", s);
+}
+```
+- In this case, `r` is used to indicate that the string should be treated as a **raw string**. `#` at beginning and end of the string is used to indicate the start and end of the raw string.
+- If the string doesn't contain `"` then we can skip `#` at the beginning and end of the string.
+- One of the the major use case in which string literals are useful is when we are processing a JSON string.
+```rust
+fn main() {
+        println!();
+    println!("Use Case: JSON String");
+    let json_str = "{
+        \"name\": \"John Doe\",
+        \"age\": 30,
+        \"city\": \"New York\"
+    }";
+    println!("Using escaped string literals: {}", json_str);
+    let json_str = r#"{
+        "name": "John Doe",
+        "age": 30,
+        "city": "New York"
+    }"#;
+    println!("Using raw string literals: {}", json_str);
+}
+```
+- In this case, we have a JSON string, which contains many double quotes. We can use `\"` to escape the double quotes, or we can use `r#` to make it a raw string. Raw string is more readable and less error-prone.
+- **Thing to note**: If we want to use `#` in the string, then we can use `#` multiple times to indicate the start and end of the raw string.
+```rust
+fn main() {
+    let s = r###"This is a #"raw" string"###;
+    println!("{}", s);
+}
+```
+- Basically you have to use one more `#` than the number of continuous `#` you want to use in the string as start and end of the raw string.
+- Summary of String Literals
+    - `r` is used to indicate that the string should be treated as a raw string.
+    - `#` at beginning and end of the string is used to indicate the start and end of the raw string.
+    - If the string doesn't contain `"` then we can skip `#` at the beginning and end of the string.
+    - If we want to use `#` in the string, then we can use `#` multiple times to indicate the start and end of the raw string.
+    - If we have n-1 continuous `#` in the string, then we have to use n `#` at the beginning and end of the string.
+-------------------------------------------------------
