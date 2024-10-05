@@ -289,3 +289,129 @@ pub fn main() {
     - At the end of the input text after there is no character and 
     - Between two characters if first is a word character and second is not a word character.
 - It doesn't match any character, it matches a position.
+-------------------------------------------------------
+## Repetition, Quantifiers and Capture Groups
+-------------------------------------------------------
+### Quantifiers
+=======================================================
+- **Quantifiers** are used to denote the repetitions. There are three quantifiers that are commonly used
+    - `*` - Zero or more occurrences
+    - `+` - One or more occurrences
+    - `?` - Zero or one occurrence
+```rust
+use regex::Regex;
+
+fn main() {
+    let re = Regex::new(r"a?aa").unwrap();
+
+    let text = "aa aaa";
+    for cap in re.captures_iter(text) {
+        println!("Found: {:?}", &cap[0]);
+    }
+}
+```
+- In the above code, `a?aa` will match `aa` and `aaa`. It matches `aa` because `a` is optional, and it matches `aaa` because `a` is present.
+- Another very good use case is to filter out file of particular types.
+```rust
+use regex::Regex;
+
+fn main() {
+    println!();
+    println!(r"Use of quantifier to get file of particular type. For the regex pattern '\w?\w?\w?.rs' and text 'file1.rs file2.txt file3.rs':");
+    let re = Regex::new(r"\w?\w?\w?.rs").unwrap();
+    let text = "fil.rs t1.rs file.rs";
+    for cap in re.captures_iter(text) {
+        println!("Found match: {}", &cap[0]);
+    }
+}
+```
+- In this case we are looking for `.rs` files, which can have minimum 0 and maximum 3 characters before `.rs`.
+- **Use of `+` Quantifier** - We can use `+` quantifier to match one or more occurrences of the preceding character.
+```rust
+use regex::Regex;
+
+fn main() {
+     println!();
+    println!("Use of '+' quantifier.");
+
+    println!("For the regex pattern 'a+' and text 'a aa aaa baab bab':");
+    let re = Regex::new(r"a+").unwrap();
+    let text = "a aa aaa baab bab";
+    for cap in re.captures_iter(text) {
+        println!("Found match: {}", &cap[0]);
+    }
+}
+```
+- In this case, `a+` will match `a`, `aa`, `aaa` and `aa` and `a` from the text.
+- **Use of `*` Quantifier** - We can use `*` quantifier to match zero or more occurrences of the preceding character.
+```rust
+use regex::Regex;
+
+fn main() {
+    println!();
+    println!("Use of '*' quantifier.");
+    let re = Regex::new(r"ab*").unwrap();
+    let text = "a ab abbbbb";
+    println!("For the regex pattern 'ab*' and text 'a ab abbbbb':");
+    for cap in re.captures_iter(text) {
+        println!("Found match: {}", &cap[0]);
+    }
+}
+```
+- In this case, `ab*` will match `a`, `ab` and `abbbbb` from the text.
+
+- We can use `{}` to specify the number of occurrences, if we have some limited number of occurrences.
+```rust
+use regex::Regex;
+
+fn main() {
+    let re = Regex::new(r"\b\w{3,5}\b").unwrap();
+    let text = "Hello I think you are because I have a gift for you.";
+    println!(r"For the regex pattern '\w{{3,5}}' and text 'Hello I think you are because I have a gift for you.'");
+    for cap in re.captures_iter(text) {
+        println!("Found match: {}", &cap[0]);
+    }
+}
+```
+- In this case, `\b\w{3,5}\b` will match any word character that has minimum 3 and maximum 5 occurrences, and `\b` is used to match word boundaries, this will make sure no partial word is matched.
+- A Nice use case of limited repetition is to limit the number of digits in the fraction and whole number part of a number.
+```rust
+use regex::Regex;
+
+fn main() {
+        println!();
+    println!("Making sure that the number of digits in the whole and fraction parts are between 1 to 3 digits with a dot in between.");
+    let re = Regex::new(r"\b\d{1,3}\.\d{1,3}\b").unwrap();
+    let text = "921.583 0.0 1456.25";
+    println!(r"For the regex pattern '\b\d{{1,3}}\.\d{{1,3}}\b' and text '921.583 0.0 1456.25'");
+    for cap in re.captures_iter(text) {
+        println!("Found match: {}", &cap[0]);
+    }
+}
+```
+- In this case, `\b\d{1,3}\.\d{1,3}\b` will match any number that has 1 to 3 digits before and after the dot.
+
+===========================================================
+### Capture Groups
+===========================================================
+- **Capture Groups** are used to capture the groups in the pattern. We can use `()` to create a capture group.
+- Sometimes the pattern we want to define may be a bit more complex and therefore we may want to break it down into smaller parts.
+- This can be done by placing parts of a regular expression inside parentheses `()` to create groups or parts withing a regular expression pattern.
+- Consider a case for detecting the dates which are given in the form of year, month and day. The year is in the form of four digits, followed by a month containing two digits and lastly the day containing two digits.
+- We can write each part of the date as a separate group and then combine them to form the date.
+```rust
+use regex::Regex;
+
+fn main() {
+    let re = Regex::new(r"(\d{4})-(\d{2})-(\d{2})").unwrap();
+    let text = "2021-07-23 2021-08-01 2021-09-30";
+    println!(r"For the regex pattern '(\d{{4}})-(\d{{2}})-(\d{{2}})' and text '2021-07-23 2021-08-01 2021-09-30'");
+    for cap in re.captures_iter(text) {
+        println!("Month: {}, Day: {}, Year: {}, and whole match: {}", &cap[2], &cap[3], &cap[1], &cap[0]);
+    }
+}
+```
+- In this case, `(\d{4})-(\d{2})-(\d{2})` will match any date that has year in the form of 4 digits, month in the form of 2 digits and day in the form of 2 digits.
+- We can use `&cap[0]` to get the whole match, and `&cap[1]`, `&cap[2]` and `&cap[3]` to get the year, month and day respectively, from the text.
+- `&cap[i]` is used to get the `i-th` capture group from the text.
+-------------------------------------------------------
