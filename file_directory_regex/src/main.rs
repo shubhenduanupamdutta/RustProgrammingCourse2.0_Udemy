@@ -2,7 +2,7 @@
 //      Text Processing (RegEx), File Handling and Directory Handling
 //--------------------------------------------------------------------
 
-use file_directory_regex::{basic_file_handling, directory_and_path, regular_expressions, repetitions_quantifiers_capture_groups, string_literals};
+use file_directory_regex::{basic_file_handling, directory_and_path, regular_expressions, repetitions_quantifiers_capture_groups, string_concat_and_ownership, string_literals};
 
 fn main() {
     println!("########### Basic File Handling ###########");
@@ -23,5 +23,9 @@ fn main() {
     println!();
     println!("########### String Literals ###########");
     string_literals::main();
+
+    println!();
+    println!("########### String Concatenation and Ownership ###########");
+    string_concat_and_ownership::main();
 
 }

@@ -462,3 +462,45 @@ fn main() {
     - If we want to use `#` in the string, then we can use `#` multiple times to indicate the start and end of the raw string.
     - If we have n-1 continuous `#` in the string, then we have to use n `#` at the beginning and end of the string.
 -------------------------------------------------------
+# String Concatenation and Ownership
+-------------------------------------------------------
+- `+` operator is used to concatenate two strings. It can only be used to concatenate a String with a string slice `&str`.
+```rust
+fn main() {
+    let s1 = String::from("Hello");
+    let s2 = " World!";
+    let s3 = s1 + s2;
+    println!("{}", s3);
+}
+```
+- `+` operator will first concatenate the two strings together as expected. The result of concatenation will not be stored in a separate memory location, but it will be stored at the location in the heap that is being pointed to by the variable `s1.`
+- Basically, ownership of `s1` is moved to `s3` and `s1` is no longer valid.
+=======================================================
+## Concatenating Pair of Strings
+=======================================================
+```rust
+let s1 = String::from("Hello, ");
+let s2 = String::from("world!");
+
+let s3 = s1 + &s2;
+```
+- In this case, `s1` is moved to `s3` and `s1` is no longer valid.
+- `&s2` is used to convert `s2` to a string slice `&str`.
+- Here `deref coercion` is used to convert `&String` to `&str`.
+- Ownership of `s2` will not change.
+
+=======================================================
+## Concatenating Multiple Strings
+=======================================================
+```rust
+fn main() {
+    println!()
+    println!("Concatenating multiple strings");
+    let s1 = String::from("tic");
+    let s2 = String::from("tac");
+    let s3 = String::from("toe");
+
+    let s4 = s1 + "-" + &s2 + "-" + &s3;
+}
+```
+- Concatenation result is first stored in `s1` as always, and then `s1` is moved to `s4`.
