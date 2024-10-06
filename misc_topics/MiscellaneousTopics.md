@@ -207,3 +207,118 @@ fn todo_macro() {
 - We can use a todo extension in VSCode to keep track of the `todo!()` macro in the code. This will help you to keep track of the progress of your project.
 - We can also use `Todo Tree` extension in VSCode to keep track of the `todo!()` macro in the code. This will help you to keep track of the progress of your project.
 - Both will require some customization to work with `todo!()` macro. Adding regex of `todo!()` macro in the settings of the extension will help to keep track of the `todo!()` macro in the code.
+-------------------------------------------------------
+# Performance Lints
+-------------------------------------------------------
+## Performance Improvements using Clippy Provided Lints
+=======================================================
+- **Lints** are warnings or suggestions provided by the Rust compiler to help you write more idiomatic and efficient code. Lints can catch common mistakes and code patterns that may lead to bugs or suboptimal performance.
+- There are many lints provided by the Rust compiler and the Clippy tool that can help you write better code. Some of these lints are related to performance improvements.
+- You can also create custom lints using the `#[warn(clippy::...)]` attribute. This will allow you to catch common mistakes and code patterns that may lead to bugs or suboptimal performance.
+- We can see available lints at [Clippy Lints](https://rust-lang.github.io/rust-clippy/master/index.html)
+- There are many lints available. Each lints is associated with a level of severity. The levels are:
+    - `allow`: Allow the lint. Does not do anything by default.
+    - `warn`: Warn about the lint. Produces and Warning.
+    - `deny`: Deny the lint. Throws an error if the lint is triggered.
+    - `None`: Disable the lint. Does not do anything.
+- Lints are also divided into categories. Some of the categories are:
+    - `correctness`: Lints that catch common mistakes and code patterns that may lead to bugs.
+    - `style`: Lints that enforce a particular style or convention.
+    - `complexity`: Lints that catch code that may be too complex or hard to understand.
+    - `perf`: Lints that catch code that may be suboptimal in terms of performance.
+
+```rust
+struct A {
+    values: Box<Vec<i32>>,
+}
+
+pub fn main() {
+
+}
+```
+- We will get a clippy warning for the above code. 
+```bash
+warning: you seem to be trying to use `Box<Vec<..>>`. Consider using just `Vec<..>`
+ --> src\performance_lints.rs:5:13
+  |
+5 |     values: Box<Vec<i32>>,
+  |             ^^^^^^^^^^^^^
+  |
+  = help: `Vec<..>` is already on the heap, `Box<Vec<..>>` makes an extra allocation
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#box_collection
+  = note: `#[warn(clippy::box_collection)]` on by default
+```
+- **The above warning is suggesting that we should use `Vec<i32>` instead of `Box<Vec<i32>>`. This is because `Vec<i32>` is already on the heap and `Box<Vec<i32>>` makes an extra allocation.**
+
+```rust
+let x: Box<i32> = Box::new(Default::default());
+```
+- We will get a clippy warning for the above code.
+```bash
+  |
+9 |     let x: Box<i32> = Box::new(Default::default());
+  |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `Box::default()`
+  |
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#box_default
+  = note: `#[warn(clippy::box_default)]` on by default
+```
+- Because we can reduce the calls to function by using
+```rust
+let x: Box<i32> = Box::default();
+```
+- **The above warning is suggesting that we should use `Box::default()` instead of `Box::new(Default::default())`. This is because `Box::default()` is more idiomatic and concise.**
+
+```rust
+let _y = String::from("Nouman");
+    let _z = "Nouman";
+    if _y == _z.to_owned() {
+        println!("Equal");
+    }
+```
+- We will get a clippy warning for the above code.
+```bash
+warning: this creates an owned instance just for comparison
+  --> src\performance_lints.rs:15:14
+   |
+15 |     if _y == _z.to_owned() {
+   |              ^^^^^^^^^^^^^ help: try: `*_z`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#cmp_owned
+   = note: `#[warn(clippy::cmp_owned)]` on by default
+```
+- **The above warning is suggesting that we should use `*_z` instead of `_z.to_owned()`. This is because `_z` is already a reference and we don't need to create an owned instance just for comparison.**
+
+```rust
+let _y = String::from("Nouman");
+    let _z = "Nouman";
+    if _y == _z {
+        println!("Equal");
+    }
+```
+```rust
+let mut a = vec![1, 2, 3];
+let mut b = vec![4, 5, 6];
+a.extend(b.drain(..));
+```
+- We are trying to extend the vector `a` with the elements of vector `b` by draining the elements of vector `b`. This is a common pattern in Rust to move the elements of one vector to another vector.
+- We will get a clippy warning for the above code.
+```bash
+warning: use of `extend` instead of `append` for adding the full range of a second vector
+  --> src\performance_lints.rs:26:5
+   |
+26 |     a.extend(b.drain(..));
+   |     ^^^^^^^^^^^^^^^^^^^^^ help: try: `a.append(&mut b)`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#extend_with_drain
+   = note: `#[warn(clippy::extend_with_drain)]` on by default
+```
+- **The above warning is suggesting that we should use `a.append(&mut b)` instead of `a.extend(b.drain(..))`. This is because `append` is more idiomatic and concise.**
+
+```rust
+let mut a = vec![1, 2, 3];
+let mut b = vec![4, 5, 6];
+a.append(&mut b);
+```
+- `.append()` is better if we want to move the elements of one vector to another vector. It is more idiomatic and concise.
+
+```rust
