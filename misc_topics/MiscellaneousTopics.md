@@ -35,5 +35,130 @@ fn vowels(words: &str) -> u8 {
 - **Coercion is a feature in Rust that allows the compiler to automatically convert a value from one type to another.** It is similar to type casting in other languages but it is done implicitly by the compiler. Rust has a set of rules that it follows to coerce a value from one type to another.
 
 - Let's look at some more coercion cases,
+    - `&String` can be coerced to `&str`
     - `&Box<T>` can be coerced to `&T`
     - `&Vec<T>` can be coerced to `&[T]`
+-------------------------------------------------------
+# Some Efficient Programming Tips
+-------------------------------------------------------
+## Simplifying Syntax of Nested Conditions Using Match
+=======================================================
+ - __*Suppose we have some application where we want to display a suitable message to the user based on his personal condition. If he has a cancer and smokes, then we would advise him that his cancer may be due to smoking. But if he has cancer but doesn't smoke then we will advise him that cancer is not related to smoking. There may be other possible reasons and he should consult his doctor.*__
+ - One way we can implementation is this
+```rust
+pub fn main() {
+    let cancer = true;
+    let smoking = false;
+
+    match cancer {
+        true => match smoking {
+            true => println!("Your cancer is likely caused by smoking."),
+            false => println!("Your cancer is not caused by smoking. You should consult your doctor for further advice."),
+        },
+        false => match smoking {
+            true => println!("Smoking is dangerous and may cause cancer. You should consult your doctor for further advice."),
+            false => println!("You don't have any disease."),
+        }
+    }
+}
+```
+- But this can be simplified using a tuple pattern in the match statement.
+```rust
+fn main() {
+    let cancer = true;
+    let smoking = true;
+    match (cancer, smoking) {
+        (true, true) => println!("Your cancer is likely caused by smoking."),
+        (true, false) => println!("Your cancer is not caused by smoking. You should consult your doctor for further advice."),
+        (false, true) => println!("Smoking is dangerous and may cause cancer. You should consult your doctor for further advice."),
+        (false, false) => println!("You don't have any disease."),
+    }
+}
+```
+- **The above code is more readable and concise.**
+- **The tuple pattern in the match statement is a very powerful feature in Rust. It allows us to match multiple values at once.**
+- **_In Summary, when we are checking multiple variables in a nested fashion using the match, then we can reduce some of extra match statement and replace them with a tuple pattern._**
+
+=======================================================
+## Using `.collect()` to get First Error Variant
+=======================================================
+- *Suppose we have a client who is communicating with the server and the server responds with a valid message of some error message. We are interested in the first error message that the server sends.*
+```rust
+fn using_collect() {
+    let responses = vec![Ok(100), Err("Client Error"), Ok(300), Err("Server Error")];
+    let result = responses.into_iter().collect::<Result<Vec<_>, _>>();
+    println!("{:?}", result);
+}
+```
+- In the above code, we have a vector of responses from the server. We are interested in the first error message that the server sends. We can use the `.collect()` method to get the first error message, directly by defining the type of the result as `Result<Vec<_>, _>`. And `.collect()` will return the first error message, if an error occurs.
+
+=======================================================
+## Organizing Struct Using a HashMap with Key being One of the Field
+=======================================================
+- *Suppose we have a struct that has multiple fields and we want to organize the struct based on one of the fields. We can use a HashMap to organize the struct based on one of the fields.*
+- This will allow us to access the struct based on the key field in O(1) time complexity.
+```rust
+fn organizing_hash_maps() {
+    let person_1 = Person {
+        name: "Joseph".to_string(),
+        _age: 25,
+    };
+
+    let person_2 = Person {
+        name: "Jane".to_string(),
+        _age: 30,
+    };
+
+    let person_3 = Person {
+        name: "Michael".to_string(),
+        _age: 35,
+    };
+
+    let persons = vec![person_1, person_2, person_3];
+
+    let person_hash = persons_by_name(persons);
+    println!("{:?}", person_hash);
+
+    for (name, details) in &person_hash {
+        println!("Person {:?} has details {:?}", name, details);
+    }
+}
+
+fn persons_by_name(persons: Vec<Person>) -> HashMap<String, Person> {
+    persons
+        .into_iter()
+        .map(|person| (person.name.clone(), person))
+        .collect()
+}
+```
+- We have used a `HashMap` to organize the `Person` struct based on the `name` field. We have defined a function `persons_by_name` that takes a vector of `Person` structs and returns a `HashMap` with the `name` field as the key and the `Person` struct as the value.
+- We have used `.clone()` method to clone the `name` because we don't want key to be a reference and we don't want partial move of the value from the struct.
+
+=======================================================
+## Using `reverse()` to reverse a range.
+=======================================================
+- *Suppose we have a range of numbers and we want to reverse the range. We can use the `reverse()` method to reverse the range.*
+- We will not be directly use `10..0` because it will not work. We will use `(0..10).rev()`
+```rust
+fn using_reverse() {
+    println!();
+    println!("When using normal range operator '0..10'");
+    for i in 0..10 {
+        println!("{}", i);
+    }
+
+    println!();
+    println!("When using reverse range operator '10..0'");
+    for i in 10..0 {
+        println!("{}", i);
+    }
+    println!("The output is empty because the range operator '10..0' is not valid.");
+
+    println!();
+    println!("For reverse range, use '0..10.rev()' instead");
+    for i in (0..10).rev() {
+        println!("{}", i);
+    }
+}
+```
+-------------------------------------------------------
