@@ -162,3 +162,48 @@ fn using_reverse() {
 }
 ```
 -------------------------------------------------------
+# Todo Macro and Some Useful Extensions
+-------------------------------------------------------
+## Todo Macro
+=======================================================
+- Some times you may want to write the bigger blocks of code first that will make up your project to help you imagine your project.
+- You can't write code in all the blocks you have defined and therefore you may wish to add code to each block in sequential order, one after the other. This will mean that initially some block has to be left empty.
+- You can use the `todo!()` macro to mark the blocks that you have not yet implemented.
+- The `todo!()` macro allows us to create empty blocks of code segments which you may later on complete. This way you can have an complete view of your project and keep track of the progress.
+- Another advantage of using `todo!()` macro is that it will panic if you are calling the function which has `todo!()` macro in it. This will help you to keep track of the progress of your project.
+```rust
+
+#[derive(Default)]
+struct Student {
+    name_std: String,
+    age: u8,
+    sex: char,
+    country: String,
+    salary: u32,
+    nationality: String,
+}
+
+impl Student {
+    fn some_fn_1(&self) -> String {
+        todo!()
+    }
+
+    fn some_fn_2(&self) -> String {
+        todo!()
+    }
+}
+
+
+fn todo_macro() {
+    let student = Student::default();
+    student.some_fn_1();
+}
+```
+- We can also choose to return a `"".to_string()` from `some_fn_1` and `some_fn_2` functions. However this has some drawbacks.
+    1. Firstly, it's more code to write, specially when return value is complicated and return more items.
+    2. Secondly, it is bit harder to understand that it is a dummy value. And at runtime if we call this function, it will return a value which may not be expected.
+    3. Thirdly, dummy values may have different forms, which may or may not be valid. But `todo!()` macro will always panic if called, and has consistent form and behavior.
+- **In Summary, `todo!()` macro is a very useful tool to keep track of the progress of your project. It allows you to create empty blocks of code segments which you may later on complete.**
+- We can use a todo extension in VSCode to keep track of the `todo!()` macro in the code. This will help you to keep track of the progress of your project.
+- We can also use `Todo Tree` extension in VSCode to keep track of the `todo!()` macro in the code. This will help you to keep track of the progress of your project.
+- Both will require some customization to work with `todo!()` macro. Adding regex of `todo!()` macro in the settings of the extension will help to keep track of the `todo!()` macro in the code.
