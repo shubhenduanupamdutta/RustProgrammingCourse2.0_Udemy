@@ -152,3 +152,67 @@ fn display_menu() {
     println!("Enter your choice: ");
 }
 ```
+---------------------------------------------------------
+## String Reversal - An application of stack
+---------------------------------------------------------
+- We can use stack to reverse a string.
+- The idea is to reverse the characters of the string by pushing them into the stack and then popping them out of the stack.
+- We will first convert a string to character vector and then reverse the characters using stack.
+```rust
+use std::num::ParseIntError;
+
+fn new_stack(max_size: usize) -> Vec<char> {
+    Vec::with_capacity(max_size)
+}
+
+fn pop(stack: &mut Vec<char>) -> Option<char> {
+    let popped_values = stack.pop();
+    // println!("The popped value is: {:?}", popped_values); No need here, because no menu is displayed, since no user input is required.
+    popped_values
+}
+
+fn push(stack: &mut Vec<char>, value: char, max_size: usize) {
+    println!("Pushing value: {:?}", value);
+    if stack.len() == max_size {
+        // println!("Stack is full. Cannot push value: {:?}", value);
+        return;
+    }
+    stack.push(value);
+    // println!("Current stack: {:?}", stack);
+}
+
+fn size(stack: &[char]) -> usize {
+    stack.len()
+}
+
+fn input() -> Result<u32, String> {
+    let mut input = String::new();
+    std::io::stdin()
+        .read_line(&mut input).map_err(|e| e.to_string())?;
+    let input: u32 = input
+        .trim()
+        .parse()
+        .map_err(|e: ParseIntError| e.to_string())?;
+    Ok(input)
+}
+
+
+pub fn main() {
+    let input_string = String::from("Welcome to Programming Practice");
+    println!("The input string is: {:?}", input_string);
+    let string_size = input_string.len();
+    let mut stack = new_stack(string_size);
+
+    let mut rev_string = String::new();
+
+    for c in input_string.chars() {
+        push(&mut stack, c, string_size);
+    }
+
+    for _ in 0..size(&stack) {
+        rev_string.push(pop(&mut stack).unwrap());
+    }
+
+    println!("The reversed string is: {:?}", rev_string);
+}
+```
