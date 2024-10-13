@@ -36,7 +36,8 @@ fn size(stack: &[u32]) -> usize {
 fn input() -> Result<u32, String> {
     let mut input = String::new();
     std::io::stdin()
-        .read_line(&mut input).map_err(|e| e.to_string())?;
+        .read_line(&mut input)
+        .map_err(|e| e.to_string())?;
     let input: u32 = input
         .trim()
         .parse()

@@ -2,7 +2,7 @@
 //              Programming Practice
 //----------------------------------------------------------------
 
-use programming_practice::{stack, string_reversal};
+use programming_practice::{expression_evaluation, stack, string_reversal};
 
 fn main() {
     println!("############### Programming Practice ###############");
@@ -14,4 +14,8 @@ fn main() {
     println!();
     println!("############ 2. String Reversal ############");
     string_reversal::main();
+
+    println!();
+    println!("############ 3. Expression Evaluation ############");
+    expression_evaluation::main();
 }
